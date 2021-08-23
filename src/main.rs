@@ -34,6 +34,7 @@ impl Plugin for HelloPlugin {
 	fn build( &self, app: &mut AppBuilder ) {
 		app.insert_resource( GreetTimer( Timer::from_seconds( 2.0, true ) ) )
 			.add_startup_system( add_people.system() )
+			.add_startup_system( setup.system() )
 			.add_system( greet_people.system() );
 	}
 }
@@ -52,6 +53,20 @@ struct GreetTimer( Timer );
 
 //=============================================================================
 // Systems
+
+
+fn setup(
+	mut commands: Commands,
+	asset_server: Res<AssetServer>,
+	mut materials: ResMut<Assets<ColorMaterial>>,
+) {
+	let texture_handle = asset_server.load( "Processor.png" );
+	commands.spawn_bundle( OrthographicCameraBundle::new_2d() );
+	commands.spawn_bundle( SpriteBundle {
+		material: materials.add( texture_handle.into() ),
+		..Default::default()
+	} );
+}
 
 
 fn add_people( mut commands: Commands ) {
