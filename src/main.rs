@@ -35,7 +35,8 @@ impl Plugin for HelloPlugin {
 		app.insert_resource( GreetTimer( Timer::from_seconds( 2.0, true ) ) )
 			.add_startup_system( add_people.system() )
 			.add_startup_system( setup.system() )
-			.add_system( greet_people.system() );
+			.add_system( greet_people.system() )
+			.add_system( animate.system() );
 	}
 }
 
@@ -60,10 +61,28 @@ fn setup(
 	asset_server: Res<AssetServer>,
 	mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
+	// Load sprite
 	let texture_handle = asset_server.load( "Processor.png" );
 	commands.spawn_bundle( OrthographicCameraBundle::new_2d() );
 	commands.spawn_bundle( SpriteBundle {
 		material: materials.add( texture_handle.into() ),
+		..Default::default()
+	} );
+
+	// 2D Text
+	commands.spawn_bundle( Text2dBundle {
+		text: Text::with_section(
+			"Simple text message.",
+			TextStyle {
+				font: asset_server.load( "fonts/Orbitron/Orbitron-Regular.ttf" ),
+				font_size: 60.0,
+				color: Color::WHITE,
+			},
+			TextAlignment {
+				vertical: VerticalAlign::Center,
+				horizontal: HorizontalAlign::Center,
+			},
+		),
 		..Default::default()
 	} );
 }
@@ -87,6 +106,15 @@ fn greet_people(
 		for name in query.iter() {
 			println!( "Hello {}!", name.0 );
 		}
+	}
+}
+
+
+fn animate(time: Res<Time>, mut query: Query<&mut Transform, With<Text>>) {
+	// Moving the text slowly in a circle.
+	for mut transform in query.iter_mut() {
+		transform.translation.x = 100.0 * time.seconds_since_startup().sin() as f32;
+		transform.translation.y = 100.0 * time.seconds_since_startup().cos() as f32;
 	}
 }
 
