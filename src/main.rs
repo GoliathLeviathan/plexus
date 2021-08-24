@@ -40,6 +40,21 @@ struct UsageBar;
 
 
 //=============================================================================
+// Resources
+
+
+struct Materials {
+	component: Handle<ColorMaterial>,
+	player: Handle<ColorMaterial>,
+	system: Handle<ColorMaterial>,
+	user: Handle<ColorMaterial>,
+	npc: Handle<ColorMaterial>,
+}
+
+
+
+
+//=============================================================================
 // Plugins
 
 
@@ -48,6 +63,7 @@ pub struct ComputerPlugin;
 impl Plugin for ComputerPlugin {
 	fn build( &self, app: &mut AppBuilder ) {
 		app.add_startup_system( setup.system() )
+			.add_system( spawn_cpu.system() )
 			.add_system( animate.system() )
 			.add_system( display_cpu_usage.system() );
 	}
@@ -69,39 +85,14 @@ fn setup(
 	commands.spawn_bundle( OrthographicCameraBundle::new_2d() );
 	commands.spawn_bundle( UiCameraBundle::default() );
 
-	// Create CPU frame
-	commands
-		.spawn_bundle( SpriteBundle {
-			material: materials.add(Color::rgb( 0.0, 0.0, 0.0 ).into() ),
-			transform: Transform::from_xyz( -140.0, 100.0, 0.0 ),
-			sprite: Sprite::new( Vec2::new( 120.0, 120.0 ) ),
-			..Default::default()
-		} )
-		.insert( Cpu )
-		.insert( Usage {
-			player: 0.0,
-			system: 0.0,
-			user: 0.0,
-			npc: 0.0,
-		} );
-
-	// Create CPU usage bars
-	commands
-		.spawn_bundle( SpriteBundle {
-			material: materials.add( Color::rgb( 0.5, 0.0, 0.0 ).into() ),
-			transform: Transform::from_xyz( -160.0, 100.0, 0.0 ),
-			sprite: Sprite::new( Vec2::new( 20.0, 100.0 ) ),
-			..Default::default()
-		} )
-		.insert( UsageBar );
-	commands
-		.spawn_bundle( SpriteBundle {
-			material: materials.add( Color::rgb( 0.0, 0.5, 0.0 ).into() ),
-			transform: Transform::from_xyz( -140.0, 100.0, 0.0 ),
-			sprite: Sprite::new( Vec2::new( 20.0, 100.0 ) ),
-			..Default::default()
-		} )
-		.insert( UsageBar );
+	// Create Materials
+	commands.insert_resource( Materials {
+		component: materials.add( Color::rgb( 1.0, 1.0, 1.0 ).into() ),
+		player: materials.add( Color::rgb( 0.0, 0.5, 0.0 ).into() ),
+		system: materials.add( Color::rgb( 0.5, 0.0, 0.5 ).into() ),
+		user: materials.add( Color::rgb( 0.0, 0.0, 0.5 ).into() ),
+		npc: materials.add( Color::rgb( 0.5, 0.0, 0.0 ).into() ),
+	} );
 
 	// Load sprite
 	let texture_handle = asset_server.load( "Processor.png" );
@@ -127,6 +118,54 @@ fn setup(
 		),
 		..Default::default()
 	} );
+}
+
+
+fn spawn_cpu(
+	mut commands: Commands,
+	materials: Res<Materials>,
+) {
+	// Create CPU-block
+	commands
+		.spawn_bundle( SpriteBundle {
+			material: materials.component.clone(),
+			transform: Transform::from_xyz( -140.0, 100.0, 0.0 ),
+			sprite: Sprite::new( Vec2::new( 120.0, 120.0 ) ),
+			..Default::default()
+		} )
+		.insert( Cpu )
+		.insert( Usage {
+			player: 0.0,
+			system: 0.0,
+			user: 0.0,
+			npc: 0.0,
+		} );
+
+	// Create CPU usage bars
+	commands
+		.spawn_bundle( SpriteBundle {
+			material: materials.system.clone(),
+			transform: Transform::from_xyz( -160.0, 100.0, 0.0 ),
+			sprite: Sprite::new( Vec2::new( 20.0, 100.0 ) ),
+			..Default::default()
+		} )
+		.insert( UsageBar );
+	commands
+		.spawn_bundle( SpriteBundle {
+			material: materials.user.clone(),
+			transform: Transform::from_xyz( -140.0, 100.0, 0.0 ),
+			sprite: Sprite::new( Vec2::new( 20.0, 100.0 ) ),
+			..Default::default()
+		} )
+		.insert( UsageBar );
+	commands
+		.spawn_bundle( SpriteBundle {
+			material: materials.npc.clone(),
+			transform: Transform::from_xyz( -120.0, 100.0, 0.0 ),
+			sprite: Sprite::new( Vec2::new( 20.0, 100.0 ) ),
+			..Default::default()
+		} )
+		.insert( UsageBar );
 }
 
 
