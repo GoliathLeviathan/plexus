@@ -8,6 +8,7 @@
 
 
 use bevy::prelude::*;
+use bevy::core::FixedTimestep;
 use rand::Rng;
 
 
@@ -39,6 +40,7 @@ struct Cpu;
 struct Usage {
 	consumer: Consumer,
 	load: f32,
+	jitter: f32,
 }
 
 
@@ -72,9 +74,22 @@ impl Plugin for ComputerPlugin {
 	fn build( &self, app: &mut AppBuilder ) {
 		app.add_startup_system( setup.system() )
 			.add_startup_stage( "game_setup", SystemStage::single( spawn_cpu.system() ) )
-			.add_system( animate.system() )
-			.add_system( randomize_cpu_load.system() )
-			.add_system( display_cpu_load.system() );
+			.add_system_set(
+				SystemSet::new()
+					.with_run_criteria( FixedTimestep::step( 5.0 ) )
+					.with_system( randomize_cpu_load.system() ),
+			)
+			.add_system_set(
+				SystemSet::new()
+					.with_run_criteria( FixedTimestep::step( 1.0 ) )
+					.with_system( jitter_cpu_load.system() ),
+			)
+			.add_system_set(
+				SystemSet::new()
+					.with_run_criteria( FixedTimestep::step( 0.01 ) )
+					.with_system( refresh_cpu_load.system() ),
+			)
+			.add_system( animate.system() );
 	}
 }
 
@@ -155,7 +170,8 @@ fn spawn_cpu(
 		.insert( StatusBar )
 		.insert( Usage{
 			consumer: Consumer::System,
-			load: 0.0
+			load: 0.0,
+			jitter: 0.0,
 		} );
 	commands
 		.spawn_bundle( SpriteBundle {
@@ -167,7 +183,8 @@ fn spawn_cpu(
 		.insert( StatusBar )
 		.insert( Usage{
 			consumer: Consumer::User,
-			load: 0.0
+			load: 0.0,
+			jitter: 0.0,
 		} );
 	commands
 		.spawn_bundle( SpriteBundle {
@@ -179,7 +196,8 @@ fn spawn_cpu(
 		.insert( StatusBar )
 		.insert( Usage{
 			consumer: Consumer::Player,
-			load: 0.0
+			load: 0.0,
+			jitter: 0.0,
 		} );
 }
 
@@ -195,20 +213,32 @@ fn animate(time: Res<Time>, mut query: Query<&mut Transform, With<Text>>) {
 
 fn randomize_cpu_load( mut query: Query<&mut Usage, With<StatusBar>> ) {
 	for mut usage in query.iter_mut() {
-		let variance = match &usage.consumer {
-			Consumer::System => 0.05,
-			Consumer::User => 0.1,
-			Consumer::Player => 0.01,
-			Consumer::Enemy => 0.02,
+		usage.load = match &usage.consumer {
+			Consumer::System => rand::random::<f32>(),
+			Consumer::User => rand::random::<f32>(),
+			Consumer::Player => rand::random::<f32>(),
+			Consumer::Enemy => rand::random::<f32>(),
 		};
-		usage.load += -0.5 * variance + variance * rand::random::<f32>();
 	}
 }
 
 
-fn display_cpu_load( mut query: Query<( &Usage, &mut Transform )> ) {
+fn jitter_cpu_load( mut query: Query<&mut Usage, With<Cpu>> ) {
+	for mut usage in query.iter_mut() {
+		usage.jitter = usage.load + 0.2 * rand::random::<f32>() - 0.1;
+	}
+}
+
+
+fn refresh_cpu_load( mut query: Query<( &Usage, &mut Transform )> ) {
+	let step = 0.01;
 	for ( usage, mut transform ) in query.iter_mut() {
-		transform.scale.y = usage.load;
+		let scale_target = usage.load + usage.jitter;
+		if transform.scale.y > scale_target {
+			transform.scale.y -= step;
+		} else if transform.scale.y < scale_target {
+			transform.scale.y += step;
+		}
 	}
 }
 
