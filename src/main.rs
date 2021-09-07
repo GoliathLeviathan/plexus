@@ -22,20 +22,11 @@ struct Cpu;
 
 #[derive( Debug )]
 struct Usage {
-	player: f32,
-	system: f32,
-	user: f32,
-	npc: f32,
-}
-
-impl Usage {
-	fn idle( &self ) -> f32 {
-		return 1.0 - self.player - self.system - self.user - self.npc;
-	}
+	value: f32,
 }
 
 
-struct UsageBar;
+struct StatusBar;
 
 
 
@@ -67,7 +58,7 @@ impl Plugin for ComputerPlugin {
 			.add_startup_stage( "game_setup", SystemStage::single( spawn_cpu.system() ) )
 			.add_system( animate.system() )
 			.add_system( randomize_cpu_load.system() )
-			.add_system( display_cpu_usage.system() );
+			.add_system( display_cpu_load.system() );
 	}
 }
 
@@ -135,13 +126,7 @@ fn spawn_cpu(
 			sprite: Sprite::new( Vec2::new( 120.0, 120.0 ) ),
 			..Default::default()
 		} )
-		.insert( Cpu )
-		.insert( Usage {
-			player: 0.0,
-			system: 0.0,
-			user: 0.0,
-			npc: 0.0,
-		} );
+		.insert( Cpu );
 
 	// Create CPU usage bars
 	commands
@@ -151,7 +136,8 @@ fn spawn_cpu(
 			sprite: Sprite::new( Vec2::new( 20.0, 100.0 ) ),
 			..Default::default()
 		} )
-		.insert( UsageBar );
+		.insert( StatusBar )
+		.insert( Usage{ value: 0.0 } );
 	commands
 		.spawn_bundle( SpriteBundle {
 			material: materials.user.clone(),
@@ -159,7 +145,8 @@ fn spawn_cpu(
 			sprite: Sprite::new( Vec2::new( 20.0, 100.0 ) ),
 			..Default::default()
 		} )
-		.insert( UsageBar );
+		.insert( StatusBar )
+		.insert( Usage{ value: 0.0 } );
 	commands
 		.spawn_bundle( SpriteBundle {
 			material: materials.npc.clone(),
@@ -167,7 +154,8 @@ fn spawn_cpu(
 			sprite: Sprite::new( Vec2::new( 20.0, 100.0 ) ),
 			..Default::default()
 		} )
-		.insert( UsageBar );
+		.insert( StatusBar )
+		.insert( Usage{ value: 0.0 } );
 }
 
 
@@ -180,19 +168,17 @@ fn animate(time: Res<Time>, mut query: Query<&mut Transform, With<Text>>) {
 }
 
 
-fn randomize_cpu_load( mut query: Query<&mut Usage, With<Cpu>> ) {
-// 	info!( "randomize_cpu_load {:?}", query );
+fn randomize_cpu_load( mut query: Query<&mut Usage, With<StatusBar>> ) {
 	for mut usage in query.iter_mut() {
 		info!( "{:?}", usage );
-		usage.user = rand::random();
+		usage.value = rand::random();
 	}
 }
 
 
-fn display_cpu_usage( mut query: Query<&mut Transform, With<UsageBar>> ) {
-// 	info!( "{:?}, {:?}", time, query );
-	for mut transform in query.iter_mut() {
-		transform.scale.y = rand::random();
+fn display_cpu_load( mut query: Query<( &Usage, &mut Transform )> ) {
+	for ( usage, mut transform ) in query.iter_mut() {
+		transform.scale.y = usage.value;
 	}
 }
 
