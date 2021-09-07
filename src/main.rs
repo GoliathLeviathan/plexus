@@ -14,6 +14,21 @@ use rand::Rng;
 
 
 //=============================================================================
+// Enums
+
+
+#[derive( Debug )]
+enum Consumer {
+	System,
+	User,
+	Player,
+	Enemy,
+}
+
+
+
+
+//=============================================================================
 // Components
 
 
@@ -22,7 +37,8 @@ struct Cpu;
 
 #[derive( Debug )]
 struct Usage {
-	value: f32,
+	consumer: Consumer,
+	load: f32,
 }
 
 
@@ -40,7 +56,7 @@ struct Materials {
 	player: Handle<ColorMaterial>,
 	system: Handle<ColorMaterial>,
 	user: Handle<ColorMaterial>,
-	npc: Handle<ColorMaterial>,
+	enemy: Handle<ColorMaterial>,
 }
 
 
@@ -84,7 +100,7 @@ fn setup(
 		player: materials.add( Color::rgb( 0.0, 0.5, 0.0 ).into() ),
 		system: materials.add( Color::rgb( 0.5, 0.0, 0.5 ).into() ),
 		user: materials.add( Color::rgb( 0.0, 0.0, 0.5 ).into() ),
-		npc: materials.add( Color::rgb( 0.5, 0.0, 0.0 ).into() ),
+		enemy: materials.add( Color::rgb( 0.5, 0.0, 0.0 ).into() ),
 	} );
 
 	// Load sprite
@@ -137,7 +153,10 @@ fn spawn_cpu(
 			..Default::default()
 		} )
 		.insert( StatusBar )
-		.insert( Usage{ value: 0.0 } );
+		.insert( Usage{
+			consumer: Consumer::System,
+			load: 0.0
+		} );
 	commands
 		.spawn_bundle( SpriteBundle {
 			material: materials.user.clone(),
@@ -146,16 +165,22 @@ fn spawn_cpu(
 			..Default::default()
 		} )
 		.insert( StatusBar )
-		.insert( Usage{ value: 0.0 } );
+		.insert( Usage{
+			consumer: Consumer::User,
+			load: 0.0
+		} );
 	commands
 		.spawn_bundle( SpriteBundle {
-			material: materials.npc.clone(),
+			material: materials.enemy.clone(),
 			transform: Transform::from_xyz( -120.0, 100.0, 0.0 ),
 			sprite: Sprite::new( Vec2::new( 20.0, 100.0 ) ),
 			..Default::default()
 		} )
 		.insert( StatusBar )
-		.insert( Usage{ value: 0.0 } );
+		.insert( Usage{
+			consumer: Consumer::Player,
+			load: 0.0
+		} );
 }
 
 
@@ -170,15 +195,20 @@ fn animate(time: Res<Time>, mut query: Query<&mut Transform, With<Text>>) {
 
 fn randomize_cpu_load( mut query: Query<&mut Usage, With<StatusBar>> ) {
 	for mut usage in query.iter_mut() {
-		info!( "{:?}", usage );
-		usage.value = rand::random();
+		let variance = match &usage.consumer {
+			Consumer::System => 0.05,
+			Consumer::User => 0.1,
+			Consumer::Player => 0.01,
+			Consumer::Enemy => 0.02,
+		};
+		usage.load += -0.5 * variance + variance * rand::random::<f32>();
 	}
 }
 
 
 fn display_cpu_load( mut query: Query<( &Usage, &mut Transform )> ) {
 	for ( usage, mut transform ) in query.iter_mut() {
-		transform.scale.y = usage.value;
+		transform.scale.y = usage.load;
 	}
 }
 
