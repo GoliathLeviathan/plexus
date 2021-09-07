@@ -20,6 +20,7 @@ use rand::Rng;
 struct Cpu;
 
 
+#[derive( Debug )]
 struct Usage {
 	player: f32,
 	system: f32,
@@ -65,6 +66,7 @@ impl Plugin for ComputerPlugin {
 		app.add_startup_system( setup.system() )
 			.add_startup_stage( "game_setup", SystemStage::single( spawn_cpu.system() ) )
 			.add_system( animate.system() )
+			.add_system( randomize_cpu_load.system() )
 			.add_system( display_cpu_usage.system() );
 	}
 }
@@ -178,9 +180,18 @@ fn animate(time: Res<Time>, mut query: Query<&mut Transform, With<Text>>) {
 }
 
 
-fn display_cpu_usage( mut query: Query<( &UsageBar, &mut Transform )> ) {
+fn randomize_cpu_load( mut query: Query<&mut Usage, With<Cpu>> ) {
+// 	info!( "randomize_cpu_load {:?}", query );
+	for mut usage in query.iter_mut() {
+		info!( "{:?}", usage );
+		usage.user = rand::random();
+	}
+}
+
+
+fn display_cpu_usage( mut query: Query<&mut Transform, With<UsageBar>> ) {
 // 	info!( "{:?}, {:?}", time, query );
-	for ( _usage_bar, mut transform ) in query.iter_mut() {
+	for mut transform in query.iter_mut() {
 		transform.scale.y = rand::random();
 	}
 }
