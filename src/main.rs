@@ -63,7 +63,7 @@ pub struct ComputerPlugin;
 impl Plugin for ComputerPlugin {
 	fn build( &self, app: &mut AppBuilder ) {
 		app.add_startup_system( setup.system() )
-			.add_system( spawn_cpu.system() )
+			.add_startup_stage( "game_setup", SystemStage::single( spawn_cpu.system() ) )
 			.add_system( animate.system() )
 			.add_system( display_cpu_usage.system() );
 	}
