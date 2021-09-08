@@ -71,17 +71,43 @@ struct StatusBar;
 // Resources
 
 
-struct Materials {
-	// UI
-	ui_normal: Handle<ColorMaterial>,
-	ui_hovered: Handle<ColorMaterial>,
-	ui_pressed: Handle<ColorMaterial>,
-	// Components
+struct UiMaterials {
+	normal: Handle<ColorMaterial>,
+	hovered: Handle<ColorMaterial>,
+	pressed: Handle<ColorMaterial>,
+}
+
+impl FromWorld for UiMaterials {
+	fn from_world( world: &mut World ) -> Self {
+		let mut materials = world.get_resource_mut::<Assets<ColorMaterial>>().unwrap();
+		UiMaterials {
+			normal: materials.add( Color::rgb( 0.0, 0.4, 0.0 ).into() ),
+			hovered: materials.add( Color::rgb( 0.0, 0.45, 0.0 ).into() ),
+			pressed: materials.add( Color::rgb( 0.0, 0.6, 0.0 ).into() ),
+		}
+	}
+}
+
+
+struct ComputerMaterials {
 	component: Handle<ColorMaterial>,
 	player: Handle<ColorMaterial>,
 	system: Handle<ColorMaterial>,
 	user: Handle<ColorMaterial>,
 	enemy: Handle<ColorMaterial>,
+}
+
+impl FromWorld for ComputerMaterials {
+	fn from_world( world: &mut World ) -> Self {
+		let mut materials = world.get_resource_mut::<Assets<ColorMaterial>>().unwrap();
+		ComputerMaterials {
+			component: materials.add( Color::rgb( 0.1, 0.1, 0.1 ).into() ),
+			player: materials.add( Color::rgb( 0.0, 0.5, 0.0 ).into() ),
+			system: materials.add( Color::rgb( 0.5, 0.0, 0.5 ).into() ),
+			user: materials.add( Color::rgb( 0.0, 0.0, 0.5 ).into() ),
+			enemy: materials.add( Color::rgb( 0.5, 0.0, 0.0 ).into() ),
+		}
+	}
 }
 
 
@@ -95,9 +121,11 @@ pub struct ComputerPlugin;
 
 impl Plugin for ComputerPlugin {
 	fn build( &self, app: &mut AppBuilder ) {
-		app.add_startup_system( setup.system() )
-			.add_startup_stage( "ui_setup", SystemStage::single( spawn_ui.system() ) )
-			.add_startup_stage( "cpu_setup", SystemStage::single( spawn_cpu.system() ) )
+		app.init_resource::<UiMaterials>()
+			.init_resource::<ComputerMaterials>()
+			.add_startup_system( setup.system() )
+			.add_startup_system( spawn_ui.system() )
+			.add_startup_system( spawn_cpu.system() )
 			.add_system_set(
 				SystemSet::new()
 					.with_run_criteria( FixedTimestep::step( 5.0 ) )
@@ -135,18 +163,6 @@ fn setup(
 	commands.spawn_bundle( OrthographicCameraBundle::new_2d() );
 	commands.spawn_bundle( UiCameraBundle::default() );
 
-	// Create Materials
-	commands.insert_resource( Materials {
-		ui_normal: materials.add( Color::rgb( 0.0, 0.4, 0.0 ).into() ),
-		ui_hovered: materials.add( Color::rgb( 0.0, 0.45, 0.0 ).into() ),
-		ui_pressed: materials.add( Color::rgb( 0.0, 0.6, 0.0 ).into() ),
-		component: materials.add( Color::rgb( 1.0, 1.0, 1.0 ).into() ),
-		player: materials.add( Color::rgb( 0.0, 0.5, 0.0 ).into() ),
-		system: materials.add( Color::rgb( 0.5, 0.0, 0.5 ).into() ),
-		user: materials.add( Color::rgb( 0.0, 0.0, 0.5 ).into() ),
-		enemy: materials.add( Color::rgb( 0.5, 0.0, 0.0 ).into() ),
-	} );
-
 	// Load sprite
 	let texture_handle = asset_server.load( "Processor.png" );
 	commands.spawn_bundle( OrthographicCameraBundle::new_2d() );
@@ -180,7 +196,7 @@ fn setup(
 fn spawn_ui(
 	mut commands: Commands,
 	asset_server: Res<AssetServer>,
-	mut materials: Res<Materials>,
+	mut materials: Res<UiMaterials>,
 ) {
 	// Clock
 	commands
@@ -230,7 +246,7 @@ fn spawn_ui(
 				},
 				..Default::default()
 			},
-			material: materials.ui_normal.clone(),
+			material: materials.normal.clone(),
 			..Default::default()
 		})
 		.with_children( |parent| {
@@ -252,7 +268,7 @@ fn spawn_ui(
 
 fn spawn_cpu(
 	mut commands: Commands,
-	materials: Res<Materials>,
+	materials: Res<ComputerMaterials>,
 ) {
 	// Create CPU-block
 	commands
@@ -325,7 +341,7 @@ fn update_clock( time: Res<Time>, mut query: Query<( &mut Clock, &mut Text )> ) 
 
 
 fn observe_button(
-	materials: Res<Materials>,
+	materials: Res<UiMaterials>,
 	mut interaction_query: Query<( &Interaction, &mut Handle<ColorMaterial> ), ( Changed<Interaction>, With<Button> )>,
 	mut tracker_query: Query<&mut Tracker>,
 ) {
@@ -333,14 +349,14 @@ fn observe_button(
 	for ( interaction, mut material ) in interaction_query.iter_mut() {
 		match *interaction {
 			Interaction::Clicked => {
-				*material = materials.ui_pressed.clone();
+				*material = materials.pressed.clone();
 				tracker.speed = 16.0;
 			}
 			Interaction::Hovered => {
-				*material = materials.ui_hovered.clone();
+				*material = materials.hovered.clone();
 			}
 			Interaction::None => {
-				*material = materials.ui_normal.clone();
+				*material = materials.normal.clone();
 			}
 		}
 	}
