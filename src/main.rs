@@ -278,47 +278,61 @@ fn spawn_cpu(
 			sprite: Sprite::new( Vec2::new( 120.0, 120.0 ) ),
 			..Default::default()
 		} )
-		.insert( Cpu );
-
-	// Create CPU usage bars
-	commands
-		.spawn_bundle( SpriteBundle {
-			material: materials.system.clone(),
-			transform: Transform::from_xyz( -160.0, 100.0, 0.0 ),
-			sprite: Sprite::new( Vec2::new( 20.0, 100.0 ) ),
-			..Default::default()
-		} )
-		.insert( StatusBar )
-		.insert( Usage{
-			consumer: Consumer::System,
-			load: 0.0,
-			jitter: 0.0,
-		} );
-	commands
-		.spawn_bundle( SpriteBundle {
-			material: materials.user.clone(),
-			transform: Transform::from_xyz( -140.0, 100.0, 0.0 ),
-			sprite: Sprite::new( Vec2::new( 20.0, 100.0 ) ),
-			..Default::default()
-		} )
-		.insert( StatusBar )
-		.insert( Usage{
-			consumer: Consumer::User,
-			load: 0.0,
-			jitter: 0.0,
-		} );
-	commands
-		.spawn_bundle( SpriteBundle {
-			material: materials.enemy.clone(),
-			transform: Transform::from_xyz( -120.0, 100.0, 0.0 ),
-			sprite: Sprite::new( Vec2::new( 20.0, 100.0 ) ),
-			..Default::default()
-		} )
-		.insert( StatusBar )
-		.insert( Usage{
-			consumer: Consumer::Player,
-			load: 0.0,
-			jitter: 0.0,
+		.insert( Cpu )
+		.with_children( |parent| {
+			// Create CPU usage bars
+			parent
+				.spawn_bundle( SpriteBundle {
+					material: materials.system.clone(),
+					transform: Transform::from_xyz( -30.0, 0.0, 1.0 ),
+					sprite: Sprite::new( Vec2::new( 20.0, 100.0 ) ),
+					..Default::default()
+				} )
+				.insert( StatusBar )
+				.insert( Usage{
+					consumer: Consumer::System,
+					load: 0.0,
+					jitter: 0.0,
+				} );
+			parent
+				.spawn_bundle( SpriteBundle {
+					material: materials.user.clone(),
+					transform: Transform::from_xyz( -10.0, 0.0, 1.0 ),
+					sprite: Sprite::new( Vec2::new( 20.0, 100.0 ) ),
+					..Default::default()
+				} )
+				.insert( StatusBar )
+				.insert( Usage{
+					consumer: Consumer::User,
+					load: 0.0,
+					jitter: 0.0,
+				} );
+			parent
+				.spawn_bundle( SpriteBundle {
+					material: materials.enemy.clone(),
+					transform: Transform::from_xyz( 10.0, 0.0, 1.0 ),
+					sprite: Sprite::new( Vec2::new( 20.0, 100.0 ) ),
+					..Default::default()
+				} )
+				.insert( StatusBar )
+				.insert( Usage{
+					consumer: Consumer::Enemy,
+					load: 0.0,
+					jitter: 0.0,
+				} );
+			parent
+				.spawn_bundle( SpriteBundle {
+					material: materials.player.clone(),
+					transform: Transform::from_xyz( 30.0, 0.0, 1.0 ),
+					sprite: Sprite::new( Vec2::new( 20.0, 100.0 ) ),
+					..Default::default()
+				} )
+				.insert( StatusBar )
+				.insert( Usage{
+					consumer: Consumer::Player,
+					load: 0.0,
+					jitter: 0.0,
+				} );
 		} );
 }
 
