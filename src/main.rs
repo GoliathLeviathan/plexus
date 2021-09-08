@@ -12,6 +12,9 @@ use chrono::{NaiveDate, NaiveDateTime};
 use bevy::prelude::*;
 use bevy::core::FixedTimestep;
 
+mod schedule;
+use schedule::Tracker;
+
 
 
 
@@ -151,6 +154,9 @@ fn setup(
 		material: materials.add( texture_handle.into() ),
 		..Default::default()
 	} );
+
+	// Implement timer that controls the in-game time flow.
+	commands.spawn_bundle( ( Tracker::new(), ) );
 
 	// 2D Text
 	commands.spawn_bundle( Text2dBundle {
@@ -320,15 +326,15 @@ fn update_clock( time: Res<Time>, mut query: Query<( &mut Clock, &mut Text )> ) 
 
 fn observe_button(
 	materials: Res<Materials>,
-	mut interaction_query: Query<
-		( &Interaction, &mut Handle<ColorMaterial>, &Children ),
-		( Changed<Interaction>, With<Button> ),
-	>,
+	mut interaction_query: Query<( &Interaction, &mut Handle<ColorMaterial> ), ( Changed<Interaction>, With<Button> )>,
+	mut tracker_query: Query<&mut Tracker>,
 ) {
-	for ( interaction, mut material, children ) in interaction_query.iter_mut() {
+	let mut tracker = tracker_query.single_mut().unwrap();
+	for ( interaction, mut material ) in interaction_query.iter_mut() {
 		match *interaction {
 			Interaction::Clicked => {
 				*material = materials.ui_pressed.clone();
+				tracker.speed = 16.0;
 			}
 			Interaction::Hovered => {
 				*material = materials.ui_hovered.clone();
