@@ -7,9 +7,19 @@
 // Crates
 
 
+use rand::Rng;
+use chrono::{NaiveDate, NaiveDateTime};
 use bevy::prelude::*;
 use bevy::core::FixedTimestep;
-use rand::Rng;
+
+
+
+
+//=============================================================================
+// Constants
+
+
+const TIMESTAMP_START: i64 = 2481201120;
 
 
 
@@ -31,6 +41,11 @@ enum Consumer {
 
 //=============================================================================
 // Components
+
+
+struct Clock{
+	timestamp: i64,
+}
 
 
 struct Cpu;
@@ -82,6 +97,7 @@ impl Plugin for ComputerPlugin {
 			.add_system_set(
 				SystemSet::new()
 					.with_run_criteria( FixedTimestep::step( 1.0 ) )
+					.with_system( update_clock.system() )
 					.with_system( jitter_cpu_load.system() ),
 			)
 			.add_system_set(
@@ -125,6 +141,37 @@ fn setup(
 		material: materials.add( texture_handle.into() ),
 		..Default::default()
 	} );
+
+	// Clock
+	commands
+		.spawn_bundle( TextBundle {
+			style: Style {
+				align_self: AlignSelf::FlexEnd,
+				position_type: PositionType::Absolute,
+				position: Rect {
+					top: Val::Px( 15.0 ),
+					right: Val::Px( 15.0 ),
+					..Default::default()
+				},
+				..Default::default()
+			},
+			text: Text::with_section(
+				"CLOCK",
+				TextStyle {
+					font: asset_server.load( "fonts/Orbitron/Orbitron-Regular.ttf" ),
+					font_size: 20.0,
+					color: Color::WHITE,
+				},
+				TextAlignment {
+					horizontal: HorizontalAlign::Center,
+					..Default::default()
+				},
+			),
+			..Default::default()
+		})
+		.insert( Clock{
+			timestamp: TIMESTAMP_START,
+		} );
 
 	// 2D Text
 	commands.spawn_bundle( Text2dBundle {
@@ -207,6 +254,14 @@ fn animate(time: Res<Time>, mut query: Query<&mut Transform, With<Text>>) {
 	for mut transform in query.iter_mut() {
 		transform.translation.x = 100.0 * time.seconds_since_startup().sin() as f32;
 		transform.translation.y = 100.0 * time.seconds_since_startup().cos() as f32;
+	}
+}
+
+fn update_clock( time: Res<Time>, mut query: Query<( &mut Clock, &mut Text )> ) {
+	for ( mut clock, mut text ) in query.iter_mut() {
+		clock.timestamp += 1;
+		let time_start: NaiveDateTime = NaiveDateTime::from_timestamp( clock.timestamp, 0 );
+		text.sections[0].value = time_start.format( "%Y-%m-%d %H:%M:%S" ).to_string();
 	}
 }
 
