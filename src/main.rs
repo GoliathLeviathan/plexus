@@ -69,6 +69,11 @@ struct StatusBar;
 
 
 struct Materials {
+	// UI
+	ui_normal: Handle<ColorMaterial>,
+	ui_hovered: Handle<ColorMaterial>,
+	ui_pressed: Handle<ColorMaterial>,
+	// Components
 	component: Handle<ColorMaterial>,
 	player: Handle<ColorMaterial>,
 	system: Handle<ColorMaterial>,
@@ -88,7 +93,8 @@ pub struct ComputerPlugin;
 impl Plugin for ComputerPlugin {
 	fn build( &self, app: &mut AppBuilder ) {
 		app.add_startup_system( setup.system() )
-			.add_startup_stage( "game_setup", SystemStage::single( spawn_cpu.system() ) )
+			.add_startup_stage( "ui_setup", SystemStage::single( spawn_ui.system() ) )
+			.add_startup_stage( "cpu_setup", SystemStage::single( spawn_cpu.system() ) )
 			.add_system_set(
 				SystemSet::new()
 					.with_run_criteria( FixedTimestep::step( 5.0 ) )
@@ -105,6 +111,7 @@ impl Plugin for ComputerPlugin {
 					.with_run_criteria( FixedTimestep::step( 0.01 ) )
 					.with_system( refresh_cpu_load.system() ),
 			)
+			.add_system( observe_button.system() )
 			.add_system( animate.system() );
 	}
 }
@@ -127,6 +134,9 @@ fn setup(
 
 	// Create Materials
 	commands.insert_resource( Materials {
+		ui_normal: materials.add( Color::rgb( 0.0, 0.4, 0.0 ).into() ),
+		ui_hovered: materials.add( Color::rgb( 0.0, 0.45, 0.0 ).into() ),
+		ui_pressed: materials.add( Color::rgb( 0.0, 0.6, 0.0 ).into() ),
 		component: materials.add( Color::rgb( 1.0, 1.0, 1.0 ).into() ),
 		player: materials.add( Color::rgb( 0.0, 0.5, 0.0 ).into() ),
 		system: materials.add( Color::rgb( 0.5, 0.0, 0.5 ).into() ),
@@ -142,6 +152,30 @@ fn setup(
 		..Default::default()
 	} );
 
+	// 2D Text
+	commands.spawn_bundle( Text2dBundle {
+		text: Text::with_section(
+			"Simple text message.",
+			TextStyle {
+				font: asset_server.load( "fonts/Orbitron/Orbitron-Regular.ttf" ),
+				font_size: 60.0,
+				color: Color::WHITE,
+			},
+			TextAlignment {
+				vertical: VerticalAlign::Center,
+				horizontal: HorizontalAlign::Center,
+			},
+		),
+		..Default::default()
+	} );
+}
+
+
+fn spawn_ui(
+	mut commands: Commands,
+	asset_server: Res<AssetServer>,
+	mut materials: Res<Materials>,
+) {
 	// Clock
 	commands
 		.spawn_bundle( TextBundle {
@@ -173,22 +207,40 @@ fn setup(
 			timestamp: TIMESTAMP_START,
 		} );
 
-	// 2D Text
-	commands.spawn_bundle( Text2dBundle {
-		text: Text::with_section(
-			"Simple text message.",
-			TextStyle {
-				font: asset_server.load( "fonts/Orbitron/Orbitron-Regular.ttf" ),
-				font_size: 60.0,
-				color: Color::WHITE,
+	// Buttons to control the in-game time.
+	commands
+		.spawn_bundle( ButtonBundle {
+			style: Style {
+				size: Size::new( Val::Px( 50.0 ), Val::Px( 50.0 ) ),
+				// The button is centerd
+				margin: Rect::all( Val::Auto ),
+				justify_content: JustifyContent::Center,
+				align_items: AlignItems::Center,
+				position_type: PositionType::Absolute,
+				position: Rect {
+					top: Val::Px( 40.0 ),
+					right: Val::Px( 15.0 ),
+					..Default::default()
+				},
+				..Default::default()
 			},
-			TextAlignment {
-				vertical: VerticalAlign::Center,
-				horizontal: HorizontalAlign::Center,
-			},
-		),
-		..Default::default()
-	} );
+			material: materials.ui_normal.clone(),
+			..Default::default()
+		})
+		.with_children( |parent| {
+			parent.spawn_bundle(TextBundle {
+				text: Text::with_section(
+					"×16",
+					TextStyle {
+						font: asset_server.load( "fonts/Orbitron/Orbitron-Regular.ttf" ),
+						font_size: 20.0,
+						color: Color::rgb( 0.9, 0.9, 0.9 ),
+					},
+					Default::default(),
+				),
+				..Default::default()
+			} );
+		} );
 }
 
 
@@ -262,6 +314,29 @@ fn update_clock( time: Res<Time>, mut query: Query<( &mut Clock, &mut Text )> ) 
 		clock.timestamp += 1;
 		let time_start: NaiveDateTime = NaiveDateTime::from_timestamp( clock.timestamp, 0 );
 		text.sections[0].value = time_start.format( "%Y-%m-%d %H:%M:%S" ).to_string();
+	}
+}
+
+
+fn observe_button(
+	materials: Res<Materials>,
+	mut interaction_query: Query<
+		( &Interaction, &mut Handle<ColorMaterial>, &Children ),
+		( Changed<Interaction>, With<Button> ),
+	>,
+) {
+	for ( interaction, mut material, children ) in interaction_query.iter_mut() {
+		match *interaction {
+			Interaction::Clicked => {
+				*material = materials.ui_pressed.clone();
+			}
+			Interaction::Hovered => {
+				*material = materials.ui_hovered.clone();
+			}
+			Interaction::None => {
+				*material = materials.ui_normal.clone();
+			}
+		}
 	}
 }
 
