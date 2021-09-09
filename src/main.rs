@@ -8,7 +8,7 @@
 
 
 use rand::Rng;
-use chrono::{NaiveDate, NaiveDateTime};
+use chrono::NaiveDateTime;
 use bevy::prelude::*;
 use bevy::core::FixedTimestep;
 
@@ -48,6 +48,18 @@ enum Consumer {
 
 struct Clock{
 	timestamp: i64,
+	nsecs: u32,
+}
+
+impl Clock {
+	/// Advancing the in-game-time by **nsecs** nanoseconds.
+	fn advance( &mut self, nsecs: u32 ) {
+		self.nsecs += nsecs;
+		while self.nsecs >= 1_000_000_000 {
+			self.timestamp += 1;
+			self.nsecs -= 1_000_000_000;
+		}
+	}
 }
 
 
@@ -126,6 +138,7 @@ impl Plugin for ComputerPlugin {
 			.add_startup_system( setup.system() )
 			.add_startup_system( spawn_ui.system() )
 			.add_startup_system( spawn_cpu.system() )
+			.add_system( update_clock.system() )
 			.add_system_set(
 				SystemSet::new()
 					.with_run_criteria( FixedTimestep::step( 5.0 ) )
@@ -134,7 +147,6 @@ impl Plugin for ComputerPlugin {
 			.add_system_set(
 				SystemSet::new()
 					.with_run_criteria( FixedTimestep::step( 1.0 ) )
-					.with_system( update_clock.system() )
 					.with_system( jitter_cpu_load.system() ),
 			)
 			.add_system_set(
@@ -196,12 +208,13 @@ fn setup(
 fn spawn_ui(
 	mut commands: Commands,
 	asset_server: Res<AssetServer>,
-	mut materials: Res<UiMaterials>,
+	materials: Res<UiMaterials>,
 ) {
 	// Clock
 	commands
 		.spawn_bundle( TextBundle {
 			style: Style {
+				size: Size::new( Val::Px( 240.0 ), Val::Px( 10.0 ) ),
 				align_self: AlignSelf::FlexEnd,
 				position_type: PositionType::Absolute,
 				position: Rect {
@@ -212,14 +225,14 @@ fn spawn_ui(
 				..Default::default()
 			},
 			text: Text::with_section(
-				"CLOCK",
+				"YYYY-MM-DD hh:mm:ss.µµµ",
 				TextStyle {
 					font: asset_server.load( "fonts/Orbitron/Orbitron-Regular.ttf" ),
 					font_size: 20.0,
 					color: Color::WHITE,
 				},
 				TextAlignment {
-					horizontal: HorizontalAlign::Center,
+					horizontal: HorizontalAlign::Left,
 					..Default::default()
 				},
 			),
@@ -227,6 +240,7 @@ fn spawn_ui(
 		})
 		.insert( Clock{
 			timestamp: TIMESTAMP_START,
+			nsecs: 0,
 		} );
 
 	// Buttons to control the in-game time.
@@ -345,12 +359,21 @@ fn animate(time: Res<Time>, mut query: Query<&mut Transform, With<Text>>) {
 	}
 }
 
-fn update_clock( time: Res<Time>, mut query: Query<( &mut Clock, &mut Text )> ) {
-	for ( mut clock, mut text ) in query.iter_mut() {
-		clock.timestamp += 1;
-		let time_start: NaiveDateTime = NaiveDateTime::from_timestamp( clock.timestamp, 0 );
-		text.sections[0].value = time_start.format( "%Y-%m-%d %H:%M:%S" ).to_string();
-	}
+
+fn update_clock(
+	time: Res<Time>,
+	mut query: Query<( &mut Clock, &mut Text )>,
+	mut tracker_query: Query<&mut Tracker>,
+) {
+	let tracker = tracker_query.single_mut().unwrap();
+	let ( mut clock, mut text ) = query.single_mut().unwrap();
+
+	// Advance in-game time by the real time since the last frame but with the in-game multiplier.
+	let time_step_nsecs = time.delta_seconds() * tracker.speed * 1_000_000_000.0;
+	clock.advance( time_step_nsecs.floor() as u32 );
+
+	let time_start: NaiveDateTime = NaiveDateTime::from_timestamp( clock.timestamp, clock.nsecs );
+	text.sections[0].value = time_start.format( "%Y-%m-%d %H:%M:%S%.3f" ).to_string();
 }
 
 
