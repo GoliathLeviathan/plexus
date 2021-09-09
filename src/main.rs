@@ -53,13 +53,22 @@ struct Clock{
 
 impl Clock {
 	/// Advancing the in-game-time by **nsecs** nanoseconds.
-	fn advance( &mut self, nsecs: u32 ) {
-		self.nsecs += nsecs;
-		while self.nsecs >= 1_000_000_000 {
-			self.timestamp += 1;
-			self.nsecs -= 1_000_000_000;
+	fn advance( &mut self, nsecs: u64 ) {
+		let mut tmp_nsecs = self.nsecs as u64 + nsecs;
+
+		let tmp_secs = tmp_nsecs / 1_000_000_000;
+		if tmp_secs > 0 {
+			tmp_nsecs -= tmp_secs * 1_000_000_000;
 		}
+
+		self.timestamp += tmp_secs as i64;
+		self.nsecs = tmp_nsecs as u32;
 	}
+}
+
+
+struct SpeedButton {
+	multiplier: f32,
 }
 
 
@@ -255,6 +264,114 @@ fn spawn_ui(
 				position_type: PositionType::Absolute,
 				position: Rect {
 					top: Val::Px( 40.0 ),
+					right: Val::Px( 180.0 ),
+					..Default::default()
+				},
+				..Default::default()
+			},
+			material: materials.normal.clone(),
+			..Default::default()
+		} )
+		.insert( SpeedButton {
+			multiplier: 1.0,
+		} )
+		.with_children( |parent| {
+			parent.spawn_bundle(TextBundle {
+				text: Text::with_section(
+					"×1",
+					TextStyle {
+						font: asset_server.load( "fonts/Orbitron/Orbitron-Regular.ttf" ),
+						font_size: 20.0,
+						color: Color::rgb( 0.9, 0.9, 0.9 ),
+					},
+					Default::default(),
+				),
+				..Default::default()
+			} );
+		} );
+	commands
+		.spawn_bundle( ButtonBundle {
+			style: Style {
+				size: Size::new( Val::Px( 50.0 ), Val::Px( 50.0 ) ),
+				// The button is centerd
+				margin: Rect::all( Val::Auto ),
+				justify_content: JustifyContent::Center,
+				align_items: AlignItems::Center,
+				position_type: PositionType::Absolute,
+				position: Rect {
+					top: Val::Px( 40.0 ),
+					right: Val::Px( 125.0 ),
+					..Default::default()
+				},
+				..Default::default()
+			},
+			material: materials.normal.clone(),
+			..Default::default()
+		} )
+		.insert( SpeedButton {
+			multiplier: 16.0,
+		} )
+		.with_children( |parent| {
+			parent.spawn_bundle(TextBundle {
+				text: Text::with_section(
+					"×16",
+					TextStyle {
+						font: asset_server.load( "fonts/Orbitron/Orbitron-Regular.ttf" ),
+						font_size: 20.0,
+						color: Color::rgb( 0.9, 0.9, 0.9 ),
+					},
+					Default::default(),
+				),
+				..Default::default()
+			} );
+		} );
+	commands
+		.spawn_bundle( ButtonBundle {
+			style: Style {
+				size: Size::new( Val::Px( 50.0 ), Val::Px( 50.0 ) ),
+				// The button is centerd
+				margin: Rect::all( Val::Auto ),
+				justify_content: JustifyContent::Center,
+				align_items: AlignItems::Center,
+				position_type: PositionType::Absolute,
+				position: Rect {
+					top: Val::Px( 40.0 ),
+					right: Val::Px( 70.0 ),
+					..Default::default()
+				},
+				..Default::default()
+			},
+			material: materials.normal.clone(),
+			..Default::default()
+		} )
+		.insert( SpeedButton {
+			multiplier: 128.0,
+		} )
+		.with_children( |parent| {
+			parent.spawn_bundle(TextBundle {
+				text: Text::with_section(
+					"×128",
+					TextStyle {
+						font: asset_server.load( "fonts/Orbitron/Orbitron-Regular.ttf" ),
+						font_size: 20.0,
+						color: Color::rgb( 0.9, 0.9, 0.9 ),
+					},
+					Default::default(),
+				),
+				..Default::default()
+			} );
+		} );
+	commands
+		.spawn_bundle( ButtonBundle {
+			style: Style {
+				size: Size::new( Val::Px( 50.0 ), Val::Px( 50.0 ) ),
+				// The button is centerd
+				margin: Rect::all( Val::Auto ),
+				justify_content: JustifyContent::Center,
+				align_items: AlignItems::Center,
+				position_type: PositionType::Absolute,
+				position: Rect {
+					top: Val::Px( 40.0 ),
 					right: Val::Px( 15.0 ),
 					..Default::default()
 				},
@@ -262,11 +379,14 @@ fn spawn_ui(
 			},
 			material: materials.normal.clone(),
 			..Default::default()
-		})
+		} )
+		.insert( SpeedButton {
+			multiplier: 1024.0,
+		} )
 		.with_children( |parent| {
 			parent.spawn_bundle(TextBundle {
 				text: Text::with_section(
-					"×16",
+					"×1024",
 					TextStyle {
 						font: asset_server.load( "fonts/Orbitron/Orbitron-Regular.ttf" ),
 						font_size: 20.0,
@@ -369,8 +489,8 @@ fn update_clock(
 	let ( mut clock, mut text ) = query.single_mut().unwrap();
 
 	// Advance in-game time by the real time since the last frame but with the in-game multiplier.
-	let time_step_nsecs = time.delta_seconds() * tracker.speed * 1_000_000_000.0;
-	clock.advance( time_step_nsecs.floor() as u32 );
+	let time_step_nsecs: f64 = time.delta_seconds_f64() * tracker.speed as f64 * 1_000_000_000.0;
+	clock.advance( time_step_nsecs.floor() as u64 );
 
 	let time_start: NaiveDateTime = NaiveDateTime::from_timestamp( clock.timestamp, clock.nsecs );
 	text.sections[0].value = time_start.format( "%Y-%m-%d %H:%M:%S%.3f" ).to_string();
@@ -379,15 +499,15 @@ fn update_clock(
 
 fn observe_button(
 	materials: Res<UiMaterials>,
-	mut interaction_query: Query<( &Interaction, &mut Handle<ColorMaterial> ), ( Changed<Interaction>, With<Button> )>,
+	mut interaction_query: Query<( &SpeedButton ,&Interaction, &mut Handle<ColorMaterial> ), ( Changed<Interaction>, With<Button> )>,
 	mut tracker_query: Query<&mut Tracker>,
 ) {
 	let mut tracker = tracker_query.single_mut().unwrap();
-	for ( interaction, mut material ) in interaction_query.iter_mut() {
+	for ( button, interaction, mut material ) in interaction_query.iter_mut() {
 		match *interaction {
 			Interaction::Clicked => {
 				*material = materials.pressed.clone();
-				tracker.speed = 16.0;
+				tracker.speed = button.multiplier;
 			}
 			Interaction::Hovered => {
 				*material = materials.hovered.clone();
