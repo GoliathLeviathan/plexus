@@ -147,6 +147,7 @@ impl Plugin for ComputerPlugin {
 			.add_startup_system( setup.system() )
 			.add_startup_system( spawn_ui.system() )
 			.add_startup_system( spawn_cpu.system() )
+			.add_system( bevy::input::system::exit_on_esc_system.system() )
 			.add_system( update_clock.system() )
 			.add_system_set(
 				SystemSet::new()
