@@ -7,18 +7,40 @@
 // Crates
 
 
-use chrono::naive::NaiveTime;
-use bevy::prelude::*;
-use bevy::core::Timer;
+use chrono::Duration;
+use chrono::naive::{NaiveTime, NaiveDateTime};
 
 
 
 
 //=============================================================================
-// Structs
+// Events
 
 
 pub struct TimeStepEvent;
+
+
+
+
+//=============================================================================
+// Components
+
+
+/// The clock holding the actual in-game time.
+pub struct Clock{
+	/// The in-game date and time.
+	pub datetime: NaiveDateTime,
+
+	/// The speed of the clock. This is a foctor between the real-world time and the in game time. For each second of real-world time, **speed** seconds pass in-game.
+	pub speed: f32,
+}
+
+impl Clock {
+	/// Advancing the in-game-time by a certain Duration.
+	pub fn advance( &mut self, dur: Duration ) {
+		self.datetime += dur;
+	}
+}
 
 
 /// The usage schedule of the computer.
@@ -48,24 +70,5 @@ impl ComputerSchedule {
 		} else {
 			return 0.0;
 		}
-	}
-}
-
-
-#[derive( Bundle )]
-pub struct Tracker {
-	pub speed: f32,
-	pub timer: Timer,
-}
-
-impl Tracker {
-	/// Create a new instance of the tracker.
-	pub fn new() -> Tracker {
-		return Tracker{
-			speed: 1.0,
-
-			// Creating a repeating timer that shoots once per second (normal time flow).
-			timer: Timer::from_seconds( 1.0, true ),
-		};
 	}
 }

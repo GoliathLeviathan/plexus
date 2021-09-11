@@ -7,13 +7,13 @@
 // Crates
 
 
-use rand::Rng;
-use chrono::{NaiveDateTime, Duration};
+use chrono::Duration;
+use chrono::naive::NaiveDateTime;
 use bevy::prelude::*;
 use bevy::core::FixedTimestep;
 
 mod schedule;
-use schedule::{ComputerSchedule, Tracker};
+use schedule::{Clock, ComputerSchedule};
 
 
 
@@ -46,16 +46,7 @@ enum Consumer {
 // Components
 
 
-struct Clock{
-	datetime: NaiveDateTime,
-}
-
-impl Clock {
-	/// Advancing the in-game-time by **nsecs** nanoseconds.
-	fn advance( &mut self, dur: Duration ) {
-		self.datetime += dur;
-	}
-}
+struct ClockWidget;
 
 
 struct SpeedButton {
@@ -180,9 +171,12 @@ fn setup(
 		..Default::default()
 	} );
 
-	// Implement timer that controls the in-game time flow.
+	// Implement clock that tracks and controls the in-game time flow.
 	commands.spawn_bundle( (
-		Tracker::new(),
+		Clock {
+			datetime: NaiveDateTime::from_timestamp( TIMESTAMP_START, 0 ),
+			speed: 1.0,
+		},
 	) );
 
 	// Implement Computer usage schedule.
@@ -241,10 +235,8 @@ fn spawn_ui(
 				},
 			),
 			..Default::default()
-		})
-		.insert( Clock {
-			datetime: NaiveDateTime::from_timestamp( TIMESTAMP_START, 0 ),
-		} );
+		} )
+		.insert( ClockWidget );
 
 	// Buttons to control the in-game time.
 	commands
@@ -476,14 +468,14 @@ fn animate(time: Res<Time>, mut query: Query<&mut Transform, With<Text>>) {
 
 fn update_clock(
 	time: Res<Time>,
-	mut query: Query<( &mut Clock, &mut Text )>,
-	mut tracker_query: Query<&mut Tracker>,
+	mut query: Query<&mut Text, With<ClockWidget>>,
+	mut clock_query: Query<&mut Clock>,
 ) {
-	let tracker = tracker_query.single_mut().unwrap();
-	let ( mut clock, mut text ) = query.single_mut().unwrap();
+	let mut clock = clock_query.single_mut().unwrap();
+	let mut text = query.single_mut().unwrap();
 
 	// Advance in-game time by the real time since the last frame but with the in-game multiplier.
-	let time_step_msecs = time.delta_seconds() * tracker.speed * 1_000_000.0;
+	let time_step_msecs = time.delta_seconds() * clock.speed * 1_000_000.0;
 	clock.advance( Duration::microseconds( time_step_msecs.floor() as i64 ) );
 
 	// Write the current in-gane date and time to the game clock widget.
@@ -494,14 +486,14 @@ fn update_clock(
 fn observe_button(
 	materials: Res<UiMaterials>,
 	mut interaction_query: Query<( &SpeedButton ,&Interaction, &mut Handle<ColorMaterial> ), ( Changed<Interaction>, With<Button> )>,
-	mut tracker_query: Query<&mut Tracker>,
+	mut clock_query: Query<&mut Clock>,
 ) {
-	let mut tracker = tracker_query.single_mut().unwrap();
+	let mut clock = clock_query.single_mut().unwrap();
 	for ( button, interaction, mut material ) in interaction_query.iter_mut() {
 		match *interaction {
 			Interaction::Clicked => {
 				*material = materials.pressed.clone();
-				tracker.speed = button.multiplier;
+				clock.speed = button.multiplier;
 			}
 			Interaction::Hovered => {
 				*material = materials.hovered.clone();
