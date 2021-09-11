@@ -9,6 +9,8 @@
 
 use bevy::prelude::*;
 
+use crate::schedule::{Clock, ComputerSchedule};
+
 
 
 
@@ -17,7 +19,7 @@ use bevy::prelude::*;
 
 
 #[derive( Debug )]
-pub enum Consumer {
+enum Consumer {
 	System,
 	User,
 	Player,
@@ -67,13 +69,13 @@ pub struct Cpu;
 #[derive( Debug )]
 pub struct Usage {
 	/// The type of the consumer having this usage.
-	pub consumer: Consumer,
+	consumer: Consumer,
 
 	/// The load between 0 (no load at all) and 1 (full load).
-	pub load: f32,
+	load: f32,
 
 	/// The amount of jitter of the usage. The higher the number the more the value jitters.
-	pub jitter: f32,
+	jitter: f32,
 }
 
 
@@ -155,4 +157,43 @@ pub fn spawn_cpu(
 					jitter: 0.0,
 				} );
 		} );
+}
+
+
+/// Update the computer usage.
+pub fn update_usage(
+	mut query: Query<&mut Usage, With<StatusBar>>,
+	clock_query: Query<&Clock>,
+	schedule_query: Query<&ComputerSchedule>
+) {
+	let clock = clock_query.single().unwrap();
+	let schedule = schedule_query.single().unwrap();
+	for mut usage in query.iter_mut() {
+		match &usage.consumer {
+			Consumer::User => usage.load = schedule.load( clock.datetime.time() ),
+			_ => (),
+		};
+	}
+}
+
+
+/// Intriduce a slight jitter on all usage displays.
+pub fn jitter_usage( mut query: Query<&mut Usage, With<Cpu>> ) {
+	for mut usage in query.iter_mut() {
+		usage.jitter = usage.load + 0.2 * rand::random::<f32>() - 0.1;
+	}
+}
+
+
+/// Update the usage display. This moves the current usage value slowly to the target usage value so that the change is smooth and is not jumping around.
+pub fn update_usage_smooth( mut query: Query<( &Usage, &mut Transform )> ) {
+	let step = 0.01;
+	for ( usage, mut transform ) in query.iter_mut() {
+		let scale_target = usage.load + usage.jitter;
+		if transform.scale.y > scale_target {
+			transform.scale.y -= step;
+		} else if transform.scale.y < scale_target {
+			transform.scale.y += step;
+		}
+	}
 }

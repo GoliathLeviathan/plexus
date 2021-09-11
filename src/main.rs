@@ -19,7 +19,7 @@ mod ui;
 use ui::{UiMaterials, ClockWidget};
 
 mod computer;
-use computer::{Consumer, ComputerMaterials, StatusBar, Usage, Cpu};
+use computer::ComputerMaterials;
 
 
 
@@ -51,15 +51,15 @@ impl Plugin for ComputerPlugin {
 			.add_system_set(
 				SystemSet::new()
 					.with_run_criteria( FixedTimestep::step( 1.0 ) )
-					.with_system( jitter_cpu_load.system() ),
+					.with_system( computer::jitter_usage.system() ),
 			)
 			.add_system_set(
 				SystemSet::new()
 					.with_run_criteria( FixedTimestep::step( 0.01 ) )
-					.with_system( refresh_cpu_load.system() ),
+					.with_system( computer::update_usage_smooth.system() ),
 			)
 			.add_system( ui::observe_button.system() )
-			.add_system( update_computer_usage.system() )
+			.add_system( computer::update_usage.system() )
 			.add_system( animate.system() );
 	}
 }
@@ -143,42 +143,6 @@ fn update_clock(
 
 	// Write the current in-gane date and time to the game clock widget.
 	text.sections[0].value = clock.datetime.format( "%Y-%m-%d %H:%M:%S%.3f" ).to_string();
-}
-
-
-fn update_computer_usage(
-	mut query: Query<&mut Usage, With<StatusBar>>,
-	clock_query: Query<&Clock>,
-	schedule_query: Query<&ComputerSchedule>
-) {
-	let clock = clock_query.single().unwrap();
-	let schedule = schedule_query.single().unwrap();
-	for mut usage in query.iter_mut() {
-		match &usage.consumer {
-			Consumer::User => usage.load = schedule.load( clock.datetime.time() ),
-			_ => (),
-		};
-	}
-}
-
-
-fn jitter_cpu_load( mut query: Query<&mut Usage, With<Cpu>> ) {
-	for mut usage in query.iter_mut() {
-		usage.jitter = usage.load + 0.2 * rand::random::<f32>() - 0.1;
-	}
-}
-
-
-fn refresh_cpu_load( mut query: Query<( &Usage, &mut Transform )> ) {
-	let step = 0.01;
-	for ( usage, mut transform ) in query.iter_mut() {
-		let scale_target = usage.load + usage.jitter;
-		if transform.scale.y > scale_target {
-			transform.scale.y -= step;
-		} else if transform.scale.y < scale_target {
-			transform.scale.y += step;
-		}
-	}
 }
 
 
