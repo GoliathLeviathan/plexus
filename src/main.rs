@@ -8,7 +8,7 @@
 
 
 use rand::Rng;
-use chrono::NaiveDateTime;
+use chrono::{NaiveDateTime, Duration};
 use bevy::prelude::*;
 use bevy::core::FixedTimestep;
 
@@ -47,20 +47,13 @@ enum Consumer {
 
 
 struct Clock{
-	timestamp: i64,
-	nsecs: u32,
+	datetime: NaiveDateTime,
 }
 
 impl Clock {
 	/// Advancing the in-game-time by **nsecs** nanoseconds.
-	fn advance( &mut self, nsecs: u64 ) {
-		let mut tmp_nsecs = self.nsecs as u64 + nsecs;
-
-		let tmp_secs = tmp_nsecs / 1_000_000_000;
-		tmp_nsecs -= tmp_secs * 1_000_000_000;
-
-		self.timestamp += tmp_secs as i64;
-		self.nsecs = tmp_nsecs as u32;
+	fn advance( &mut self, dur: Duration ) {
+		self.datetime += dur;
 	}
 }
 
@@ -249,9 +242,8 @@ fn spawn_ui(
 			),
 			..Default::default()
 		})
-		.insert( Clock{
-			timestamp: TIMESTAMP_START,
-			nsecs: 0,
+		.insert( Clock {
+			datetime: NaiveDateTime::from_timestamp( TIMESTAMP_START, 0 ),
 		} );
 
 	// Buttons to control the in-game time.
@@ -491,11 +483,11 @@ fn update_clock(
 	let ( mut clock, mut text ) = query.single_mut().unwrap();
 
 	// Advance in-game time by the real time since the last frame but with the in-game multiplier.
-	let time_step_nsecs: f64 = time.delta_seconds_f64() * tracker.speed as f64 * 1_000_000_000.0;
-	clock.advance( time_step_nsecs.floor() as u64 );
+	let time_step_msecs = time.delta_seconds() * tracker.speed * 1_000_000.0;
+	clock.advance( Duration::microseconds( time_step_msecs.floor() as i64 ) );
 
-	let time_start: NaiveDateTime = NaiveDateTime::from_timestamp( clock.timestamp, clock.nsecs );
-	text.sections[0].value = time_start.format( "%Y-%m-%d %H:%M:%S%.3f" ).to_string();
+	// Write the current in-gane date and time to the game clock widget.
+	text.sections[0].value = clock.datetime.format( "%Y-%m-%d %H:%M:%S%.3f" ).to_string();
 }
 
 
@@ -529,10 +521,9 @@ fn update_computer_usage(
 ) {
 	let clock = clock_query.single().unwrap();
 	let schedule = schedule_query.single().unwrap();
-	let time = NaiveDateTime::from_timestamp( clock.timestamp, clock.nsecs ).time();
 	for mut usage in query.iter_mut() {
 		match &usage.consumer {
-			Consumer::User => usage.load = schedule.load( time ),
+			Consumer::User => usage.load = schedule.load( clock.datetime.time() ),
 			_ => (),
 		};
 	}
