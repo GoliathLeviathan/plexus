@@ -15,6 +15,9 @@ use bevy::core::FixedTimestep;
 mod schedule;
 use schedule::{Clock, ComputerSchedule};
 
+mod computer;
+use computer::{Consumer, ComputerMaterials, StatusBar, Usage, Cpu};
+
 
 
 
@@ -23,21 +26,6 @@ use schedule::{Clock, ComputerSchedule};
 
 
 const TIMESTAMP_START: i64 = 2481201120;
-
-
-
-
-//=============================================================================
-// Enums
-
-
-#[derive( Debug )]
-enum Consumer {
-	System,
-	User,
-	Player,
-	Enemy,
-}
 
 
 
@@ -52,20 +40,6 @@ struct ClockWidget;
 struct SpeedButton {
 	multiplier: f32,
 }
-
-
-struct Cpu;
-
-
-#[derive( Debug )]
-struct Usage {
-	consumer: Consumer,
-	load: f32,
-	jitter: f32,
-}
-
-
-struct StatusBar;
 
 
 
@@ -92,28 +66,6 @@ impl FromWorld for UiMaterials {
 }
 
 
-struct ComputerMaterials {
-	component: Handle<ColorMaterial>,
-	player: Handle<ColorMaterial>,
-	system: Handle<ColorMaterial>,
-	user: Handle<ColorMaterial>,
-	enemy: Handle<ColorMaterial>,
-}
-
-impl FromWorld for ComputerMaterials {
-	fn from_world( world: &mut World ) -> Self {
-		let mut materials = world.get_resource_mut::<Assets<ColorMaterial>>().unwrap();
-		ComputerMaterials {
-			component: materials.add( Color::rgb( 0.1, 0.1, 0.1 ).into() ),
-			player: materials.add( Color::rgb( 0.0, 0.5, 0.0 ).into() ),
-			system: materials.add( Color::rgb( 0.5, 0.0, 0.5 ).into() ),
-			user: materials.add( Color::rgb( 0.0, 0.0, 0.5 ).into() ),
-			enemy: materials.add( Color::rgb( 0.5, 0.0, 0.0 ).into() ),
-		}
-	}
-}
-
-
 
 
 //=============================================================================
@@ -128,7 +80,7 @@ impl Plugin for ComputerPlugin {
 			.init_resource::<ComputerMaterials>()
 			.add_startup_system( setup.system() )
 			.add_startup_system( spawn_ui.system() )
-			.add_startup_system( spawn_cpu.system() )
+			.add_startup_system( computer::spawn_cpu.system() )
 			.add_system( bevy::input::system::exit_on_esc_system.system() )
 			.add_system( update_clock.system() )
 			.add_system_set(
@@ -382,77 +334,6 @@ fn spawn_ui(
 				),
 				..Default::default()
 			} );
-		} );
-}
-
-
-fn spawn_cpu(
-	mut commands: Commands,
-	materials: Res<ComputerMaterials>,
-) {
-	// Create CPU-block
-	commands
-		.spawn_bundle( SpriteBundle {
-			material: materials.component.clone(),
-			transform: Transform::from_xyz( -140.0, 100.0, 0.0 ),
-			sprite: Sprite::new( Vec2::new( 120.0, 120.0 ) ),
-			..Default::default()
-		} )
-		.insert( Cpu )
-		.with_children( |parent| {
-			// Create CPU usage bars
-			parent
-				.spawn_bundle( SpriteBundle {
-					material: materials.system.clone(),
-					transform: Transform::from_xyz( -30.0, 0.0, 1.0 ),
-					sprite: Sprite::new( Vec2::new( 20.0, 100.0 ) ),
-					..Default::default()
-				} )
-				.insert( StatusBar )
-				.insert( Usage{
-					consumer: Consumer::System,
-					load: 0.0,
-					jitter: 0.0,
-				} );
-			parent
-				.spawn_bundle( SpriteBundle {
-					material: materials.user.clone(),
-					transform: Transform::from_xyz( -10.0, 0.0, 1.0 ),
-					sprite: Sprite::new( Vec2::new( 20.0, 100.0 ) ),
-					..Default::default()
-				} )
-				.insert( StatusBar )
-				.insert( Usage{
-					consumer: Consumer::User,
-					load: 0.0,
-					jitter: 0.0,
-				} );
-			parent
-				.spawn_bundle( SpriteBundle {
-					material: materials.enemy.clone(),
-					transform: Transform::from_xyz( 10.0, 0.0, 1.0 ),
-					sprite: Sprite::new( Vec2::new( 20.0, 100.0 ) ),
-					..Default::default()
-				} )
-				.insert( StatusBar )
-				.insert( Usage{
-					consumer: Consumer::Enemy,
-					load: 0.0,
-					jitter: 0.0,
-				} );
-			parent
-				.spawn_bundle( SpriteBundle {
-					material: materials.player.clone(),
-					transform: Transform::from_xyz( 30.0, 0.0, 1.0 ),
-					sprite: Sprite::new( Vec2::new( 20.0, 100.0 ) ),
-					..Default::default()
-				} )
-				.insert( StatusBar )
-				.insert( Usage{
-					consumer: Consumer::Player,
-					load: 0.0,
-					jitter: 0.0,
-				} );
 		} );
 }
 
