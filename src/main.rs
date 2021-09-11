@@ -13,7 +13,7 @@ use bevy::prelude::*;
 use bevy::core::FixedTimestep;
 
 mod schedule;
-use schedule::Tracker;
+use schedule::{ComputerSchedule, Tracker};
 
 
 
@@ -57,9 +57,7 @@ impl Clock {
 		let mut tmp_nsecs = self.nsecs as u64 + nsecs;
 
 		let tmp_secs = tmp_nsecs / 1_000_000_000;
-		if tmp_secs > 0 {
-			tmp_nsecs -= tmp_secs * 1_000_000_000;
-		}
+		tmp_nsecs -= tmp_secs * 1_000_000_000;
 
 		self.timestamp += tmp_secs as i64;
 		self.nsecs = tmp_nsecs as u32;
@@ -151,11 +149,6 @@ impl Plugin for ComputerPlugin {
 			.add_system( update_clock.system() )
 			.add_system_set(
 				SystemSet::new()
-					.with_run_criteria( FixedTimestep::step( 5.0 ) )
-					.with_system( randomize_cpu_load.system() ),
-			)
-			.add_system_set(
-				SystemSet::new()
 					.with_run_criteria( FixedTimestep::step( 1.0 ) )
 					.with_system( jitter_cpu_load.system() ),
 			)
@@ -165,6 +158,7 @@ impl Plugin for ComputerPlugin {
 					.with_system( refresh_cpu_load.system() ),
 			)
 			.add_system( observe_button.system() )
+			.add_system( update_computer_usage.system() )
 			.add_system( animate.system() );
 	}
 }
@@ -194,7 +188,14 @@ fn setup(
 	} );
 
 	// Implement timer that controls the in-game time flow.
-	commands.spawn_bundle( ( Tracker::new(), ) );
+	commands.spawn_bundle( (
+		Tracker::new(),
+	) );
+
+	// Implement Computer usage schedule.
+	commands.spawn_bundle( (
+		ComputerSchedule::from_template( "Family" ),
+	) );
 
 	// 2D Text
 	commands.spawn_bundle( Text2dBundle {
@@ -521,13 +522,18 @@ fn observe_button(
 }
 
 
-fn randomize_cpu_load( mut query: Query<&mut Usage, With<StatusBar>> ) {
+fn update_computer_usage(
+	mut query: Query<&mut Usage, With<StatusBar>>,
+	clock_query: Query<&Clock>,
+	schedule_query: Query<&ComputerSchedule>
+) {
+	let clock = clock_query.single().unwrap();
+	let schedule = schedule_query.single().unwrap();
+	let time = NaiveDateTime::from_timestamp( clock.timestamp, clock.nsecs ).time();
 	for mut usage in query.iter_mut() {
-		usage.load = match &usage.consumer {
-			Consumer::System => rand::random::<f32>(),
-			Consumer::User => rand::random::<f32>(),
-			Consumer::Player => rand::random::<f32>(),
-			Consumer::Enemy => rand::random::<f32>(),
+		match &usage.consumer {
+			Consumer::User => usage.load = schedule.load( time ),
+			_ => (),
 		};
 	}
 }
