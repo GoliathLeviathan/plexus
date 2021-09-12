@@ -53,7 +53,9 @@ impl Plugin for ComputerPlugin {
 					.with_run_criteria( FixedTimestep::step( 0.1 ) )
 					.with_system( computer::jitter_usage.system() ),
 			)
-			.add_system( ui::observe_button.system() )
+			.add_system( ui::ui_interact.system() )
+			.add_system( ui::change_time_speed_by_button.system() )
+			.add_system( ui::change_load_by_button.system() )
 			.add_system( computer::update_usage.system() )
 			.add_system( computer::draw_usage_smooth.system() );
 	}

@@ -10,6 +10,7 @@
 use bevy::prelude::*;
 
 use crate::schedule::Clock;
+use crate::computer::{Usage, InstrumentCpu, ConsumerPlayer};
 
 
 
@@ -47,6 +48,11 @@ pub struct ClockWidget;
 
 pub struct SpeedButton {
 	multiplier: f32,
+}
+
+
+pub struct LoadButton {
+	value: i32,
 }
 
 
@@ -115,7 +121,7 @@ pub fn spawn_ui(
 			multiplier: 1.0,
 		} )
 		.with_children( |parent| {
-			parent.spawn_bundle(TextBundle {
+			parent.spawn_bundle( TextBundle {
 				text: Text::with_section(
 					"×1",
 					TextStyle {
@@ -236,27 +242,147 @@ pub fn spawn_ui(
 				..Default::default()
 			} );
 		} );
+
+
+	// Buttons to control the load the player is allocating.
+	commands
+		.spawn_bundle( ButtonBundle {
+			style: Style {
+				size: Size::new( Val::Px( 150.0 ), Val::Px( 50.0 ) ),
+				margin: Rect::all( Val::Auto ),
+				justify_content: JustifyContent::Center,
+				align_items: AlignItems::Center,
+				position_type: PositionType::Absolute,
+				position: Rect {
+					top: Val::Px( 10.0 ),
+					left: Val::Px( 10.0 ),
+					..Default::default()
+				},
+				..Default::default()
+			},
+			material: materials.normal.clone(),
+			..Default::default()
+		} )
+		.insert( LoadButton {
+			value: 10,
+		} )
+		.with_children( |parent| {
+			parent.spawn_bundle( TextBundle {
+				text: Text::with_section(
+					"Load +",
+					TextStyle {
+						font: asset_server.load( "fonts/Orbitron/Orbitron-Regular.ttf" ),
+						font_size: 20.0,
+						color: Color::rgb( 0.9, 0.9, 0.9 ),
+					},
+					Default::default(),
+				),
+				..Default::default()
+			} );
+		} );
+	commands
+		.spawn_bundle( ButtonBundle {
+			style: Style {
+				size: Size::new( Val::Px( 150.0 ), Val::Px( 50.0 ) ),
+				margin: Rect::all( Val::Auto ),
+				justify_content: JustifyContent::Center,
+				align_items: AlignItems::Center,
+				position_type: PositionType::Absolute,
+				position: Rect {
+					top: Val::Px( 60.0 ),
+					left: Val::Px( 10.0 ),
+					..Default::default()
+				},
+				..Default::default()
+			},
+			material: materials.normal.clone(),
+			..Default::default()
+		} )
+		.insert( LoadButton {
+			value: -10,
+		} )
+		.with_children( |parent| {
+			parent.spawn_bundle( TextBundle {
+				text: Text::with_section(
+					"Load -",
+					TextStyle {
+						font: asset_server.load( "fonts/Orbitron/Orbitron-Regular.ttf" ),
+						font_size: 20.0,
+						color: Color::rgb( 0.9, 0.9, 0.9 ),
+					},
+					Default::default(),
+				),
+				..Default::default()
+			} );
+		} );
 }
 
 
-pub fn observe_button(
+pub fn ui_interact(
 	materials: Res<UiMaterials>,
-	mut interaction_query: Query<( &SpeedButton ,&Interaction, &mut Handle<ColorMaterial> ), ( Changed<Interaction>, With<Button> )>,
-	mut clock_query: Query<&mut Clock>,
+	mut interaction_query: Query<
+		( &Interaction, &mut Handle<ColorMaterial> ),
+		( Changed<Interaction>, With<Button> )
+	>,
 ) {
-	let mut clock = clock_query.single_mut().unwrap();
-	for ( button, interaction, mut material ) in interaction_query.iter_mut() {
+	for ( interaction, mut material ) in interaction_query.iter_mut() {
 		match *interaction {
 			Interaction::Clicked => {
 				*material = materials.pressed.clone();
-				clock.speed = button.multiplier;
-			}
+			},
 			Interaction::Hovered => {
 				*material = materials.hovered.clone();
-			}
+			},
 			Interaction::None => {
 				*material = materials.normal.clone();
-			}
+			},
+		}
+	}
+}
+
+
+pub fn change_time_speed_by_button(
+	mut interaction_query: Query<
+		( &SpeedButton, &Interaction ),
+		( Changed<Interaction>, With<Button> )
+	>,
+	mut clock_query: Query<&mut Clock>,
+) {
+	let mut clock = clock_query.single_mut().unwrap();
+	for ( button, interaction ) in interaction_query.iter_mut() {
+		match *interaction {
+			Interaction::Clicked => {
+				clock.speed = button.multiplier;
+			},
+			_ => (),
+		}
+	}
+}
+
+
+pub fn change_load_by_button(
+	mut usage_query: Query<&mut Usage, ( With<InstrumentCpu>, With<ConsumerPlayer> )>,
+	mut interaction_query: Query<
+		( &LoadButton, &Interaction ),
+		( Changed<Interaction>, With<Button> )
+	>,
+) {
+	let mut usage = usage_query.single_mut().unwrap();
+	for ( button, interaction ) in interaction_query.iter_mut() {
+		match *interaction {
+			Interaction::Clicked => {
+				if button.value < 0 {
+					let val = -button.value as u32;
+					if usage.load < val {
+						usage.load = 0;
+					} else {
+						usage.load -= -button.value as u32;
+					}
+				} else {
+					usage.load += button.value as u32;
+				}
+			},
+			_ => (),
 		}
 	}
 }

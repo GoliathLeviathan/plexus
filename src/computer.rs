@@ -97,11 +97,15 @@ pub struct Usage {
 	consumer: Consumer,
 
 	/// The load between 0 (no load at all) and 1 (full load).
-	load: u32,
+	pub load: u32,
 
 	/// The amount of jitter of the usage. The higher the number the more the value jitters.
 	jitter: f32,
 }
+
+
+/// This is used by the player as a consumer.
+pub struct ConsumerPlayer;
 
 
 /// This component represents a status bar.
@@ -186,7 +190,8 @@ pub fn spawn_cpu(
 					consumer: Consumer::Player,
 					load: 0,
 					jitter: 0.0,
-				} );
+				} )
+				.insert( ConsumerPlayer );
 		} );
 }
 
