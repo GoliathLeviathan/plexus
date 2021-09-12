@@ -15,6 +15,24 @@ use crate::schedule::{Clock, ComputerSchedule};
 
 
 //=============================================================================
+// Constants
+
+
+/// The size of the CPU sprite. The first entry is the width, the second the height.
+const CPU_SIZE: [f32; 2] = [ 120.0, 120.0 ];
+
+
+/// The margin between computer component representations and the info they display.
+const MARGIN: f32 = 10.0;
+
+
+/// The maximum size of the usage bars. The first entry is the width, the second the height.
+const USAGE_BAR_SIZE: [f32; 2] = [ CPU_SIZE[0] - MARGIN, CPU_SIZE[1] - MARGIN ];
+
+
+
+
+//=============================================================================
 // Enums
 
 
@@ -105,7 +123,7 @@ pub fn spawn_cpu(
 		.spawn_bundle( SpriteBundle {
 			material: materials.component.clone(),
 			transform: Transform::from_xyz( -140.0, 100.0, 0.0 ),
-			sprite: Sprite::new( Vec2::new( 120.0, 120.0 ) ),
+			sprite: Sprite::new( Vec2::new( CPU_SIZE[0], CPU_SIZE[1] ) ),
 			..Default::default()
 		} )
 		.insert( Cpu {
@@ -116,8 +134,8 @@ pub fn spawn_cpu(
 			parent
 				.spawn_bundle( SpriteBundle {
 					material: materials.system.clone(),
-					transform: Transform::from_xyz( -30.0, 0.0, 1.0 ),
-					sprite: Sprite::new( Vec2::new( 20.0, 100.0 ) ),
+					transform: Transform::from_xyz( 0.0, -USAGE_BAR_SIZE[1] / 2.0, 1.0 ),
+					sprite: Sprite::new( Vec2::new( USAGE_BAR_SIZE[0], USAGE_BAR_SIZE[1] ) ),
 					..Default::default()
 				} )
 				.insert( InstrumentCpu )
@@ -130,8 +148,8 @@ pub fn spawn_cpu(
 			parent
 				.spawn_bundle( SpriteBundle {
 					material: materials.user.clone(),
-					transform: Transform::from_xyz( -10.0, 0.0, 1.0 ),
-					sprite: Sprite::new( Vec2::new( 20.0, 100.0 ) ),
+					transform: Transform::from_xyz( 0.0, -USAGE_BAR_SIZE[1] / 2.0, 1.0 ),
+					sprite: Sprite::new( Vec2::new( USAGE_BAR_SIZE[0], USAGE_BAR_SIZE[1] ) ),
 					..Default::default()
 				} )
 				.insert( InstrumentCpu )
@@ -144,8 +162,8 @@ pub fn spawn_cpu(
 			parent
 				.spawn_bundle( SpriteBundle {
 					material: materials.enemy.clone(),
-					transform: Transform::from_xyz( 10.0, 0.0, 1.0 ),
-					sprite: Sprite::new( Vec2::new( 20.0, 100.0 ) ),
+					transform: Transform::from_xyz( 0.0, -USAGE_BAR_SIZE[1] / 2.0, 1.0 ),
+					sprite: Sprite::new( Vec2::new( USAGE_BAR_SIZE[0], USAGE_BAR_SIZE[1] ) ),
 					..Default::default()
 				} )
 				.insert( InstrumentCpu )
@@ -158,8 +176,8 @@ pub fn spawn_cpu(
 			parent
 				.spawn_bundle( SpriteBundle {
 					material: materials.player.clone(),
-					transform: Transform::from_xyz( 30.0, 0.0, 1.0 ),
-					sprite: Sprite::new( Vec2::new( 20.0, 100.0 ) ),
+					transform: Transform::from_xyz( 0.0, -USAGE_BAR_SIZE[1] / 2.0, 1.0 ),
+					sprite: Sprite::new( Vec2::new( USAGE_BAR_SIZE[0], USAGE_BAR_SIZE[1] ) ),
 					..Default::default()
 				} )
 				.insert( InstrumentCpu )
@@ -206,12 +224,13 @@ pub fn jitter_usage(
 
 
 /// Update the usage display. This moves the current usage value slowly to the target usage value so that the change is smooth and is not jumping around.
-pub fn update_usage_smooth(
+pub fn draw_usage_smooth(
 	mut query: Query<( &mut Transform, &Usage ), With<InstrumentCpu>>,
 	cpu_query: Query<&Cpu>,
 ) {
 	let cpu = cpu_query.single().unwrap();
 	let step = 0.01;
+	let mut transform_prev: Option<Mut<Transform>> = None;
 	for ( mut transform, usage ) in query.iter_mut() {
 		let scale_target = ( usage.load as f32 / cpu.capacity as f32 ) + usage.jitter;
 		if transform.scale.y > scale_target + step {
@@ -219,5 +238,19 @@ pub fn update_usage_smooth(
 		} else if transform.scale.y < scale_target - step {
 			transform.scale.y += step;
 		}
+
+		match transform_prev {
+			Some( v ) => {
+				let shift = v.translation.y + USAGE_BAR_SIZE[1] * v.scale.y / 2.0 + ( transform.scale.y / 2.0 ) * USAGE_BAR_SIZE[1];
+				transform.translation = Vec3::new( 0.0, shift, 1.0 );
+			},
+			None => {
+				let shift: f32 = -USAGE_BAR_SIZE[1] / 2.0 + ( transform.scale.y / 2.0 ) * USAGE_BAR_SIZE[1];
+				transform.translation = Vec3::new( 0.0, shift, 1.0 );
+			},
+		}
+
+		// Store handled transform as previously handled.
+		transform_prev = Some( transform );
 	}
 }

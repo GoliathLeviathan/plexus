@@ -53,13 +53,9 @@ impl Plugin for ComputerPlugin {
 					.with_run_criteria( FixedTimestep::step( 0.1 ) )
 					.with_system( computer::jitter_usage.system() ),
 			)
-			.add_system_set(
-				SystemSet::new()
-					.with_run_criteria( FixedTimestep::step( 0.01 ) )
-					.with_system( computer::update_usage_smooth.system() ),
-			)
 			.add_system( ui::observe_button.system() )
-			.add_system( computer::update_usage.system() );
+			.add_system( computer::update_usage.system() )
+			.add_system( computer::draw_usage_smooth.system() );
 	}
 }
 
