@@ -111,6 +111,7 @@ pub fn spawn_cpu(
 					sprite: Sprite::new( Vec2::new( 20.0, 100.0 ) ),
 					..Default::default()
 				} )
+				.insert( Cpu )
 				.insert( StatusBar )
 				.insert( Usage{
 					consumer: Consumer::System,
@@ -124,6 +125,7 @@ pub fn spawn_cpu(
 					sprite: Sprite::new( Vec2::new( 20.0, 100.0 ) ),
 					..Default::default()
 				} )
+				.insert( Cpu )
 				.insert( StatusBar )
 				.insert( Usage{
 					consumer: Consumer::User,
@@ -137,6 +139,7 @@ pub fn spawn_cpu(
 					sprite: Sprite::new( Vec2::new( 20.0, 100.0 ) ),
 					..Default::default()
 				} )
+				.insert( Cpu )
 				.insert( StatusBar )
 				.insert( Usage{
 					consumer: Consumer::Enemy,
@@ -150,6 +153,7 @@ pub fn spawn_cpu(
 					sprite: Sprite::new( Vec2::new( 20.0, 100.0 ) ),
 					..Default::default()
 				} )
+				.insert( Cpu )
 				.insert( StatusBar )
 				.insert( Usage{
 					consumer: Consumer::Player,
@@ -178,10 +182,16 @@ pub fn update_usage(
 }
 
 
-/// Intriduce a slight jitter on all usage displays.
-pub fn jitter_usage( mut query: Query<&mut Usage, With<Cpu>> ) {
+/// Introduce a slight jitter on all usage displays.
+pub fn jitter_usage(
+	mut query: Query<&mut Usage, With<Cpu>>
+) {
 	for mut usage in query.iter_mut() {
-		usage.jitter = usage.load + 0.2 * rand::random::<f32>() - 0.1;
+		if usage.load > 0.0 {
+			usage.jitter = 0.04 * rand::random::<f32>() - 0.02;
+		} else {
+			usage.jitter = 0.0;
+		}
 	}
 }
 
@@ -191,9 +201,9 @@ pub fn update_usage_smooth( mut query: Query<( &Usage, &mut Transform )> ) {
 	let step = 0.01;
 	for ( usage, mut transform ) in query.iter_mut() {
 		let scale_target = usage.load + usage.jitter;
-		if transform.scale.y > scale_target {
+		if transform.scale.y > scale_target + step {
 			transform.scale.y -= step;
-		} else if transform.scale.y < scale_target {
+		} else if transform.scale.y < scale_target - step {
 			transform.scale.y += step;
 		}
 	}

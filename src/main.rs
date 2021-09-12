@@ -50,7 +50,7 @@ impl Plugin for ComputerPlugin {
 			.add_system( update_clock.system() )
 			.add_system_set(
 				SystemSet::new()
-					.with_run_criteria( FixedTimestep::step( 1.0 ) )
+					.with_run_criteria( FixedTimestep::step( 0.1 ) )
 					.with_system( computer::jitter_usage.system() ),
 			)
 			.add_system_set(
