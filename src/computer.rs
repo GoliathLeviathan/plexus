@@ -19,7 +19,7 @@ use crate::schedule::{Clock, ComputerSchedule};
 
 
 #[derive( Debug )]
-enum Consumer {
+pub enum Consumer {
 	System,
 	User,
 	Player,
@@ -169,10 +169,11 @@ pub fn update_usage(
 	let clock = clock_query.single().unwrap();
 	let schedule = schedule_query.single().unwrap();
 	for mut usage in query.iter_mut() {
-		match &usage.consumer {
-			Consumer::User => usage.load = schedule.load( clock.datetime.time() ),
-			_ => (),
-		};
+		let load = schedule.load( &usage.consumer, clock.datetime.time() );
+		match load {
+			Ok( x ) => usage.load = x,
+			Err( _ ) => return (),
+		}
 	}
 }
 

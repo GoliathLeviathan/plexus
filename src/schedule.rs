@@ -10,6 +10,8 @@
 use chrono::Duration;
 use chrono::naive::{NaiveTime, NaiveDateTime};
 
+use crate::computer::Consumer;
+
 
 
 
@@ -55,20 +57,47 @@ pub struct ComputerSchedule {
 impl ComputerSchedule {
 	/// Create a new computer schedule from the template.
 	pub fn from_template( template: &str ) -> Self {
+		// TODO: Ensure that the computer is on for at least 2 minutes to allow for enough time for booting and shutting down.
 		ComputerSchedule {
 // 			template: template,
-			start: NaiveTime::from_hms( 14, 33, 30 ),
-			stop: NaiveTime::from_hms( 14, 34, 40 ),
+			start: NaiveTime::from_hms( 14, 32, 30 ),
+			stop: NaiveTime::from_hms( 14, 36, 40 ),
 			load: 0.5,
 		}
 	}
 
 	/// Returns the current load (by the user) of the computer at the specified time.
-	pub fn load( &self, time: NaiveTime ) -> f32 {
-		if time >= self.start && time <= self.stop {
-			return self.load;
-		} else {
-			return 0.0;
+	pub fn load( &self, consumer: &Consumer, time: NaiveTime ) -> Result<f32, &str> {
+		match consumer {
+			Consumer::System => {
+				if time >= self.start && time <= self.stop {
+					// The system needs some time to boot up. During this time the system load is high and gets lower at the end.
+					if time < self.start + Duration::seconds( 45 ) {
+						// First part of the booting process.
+						return Ok( 0.9 );
+					} else if time < self.start + Duration::seconds( 90 ) {
+						// Second part of the booting process.
+						return Ok( 0.75 );
+					} else if time > self.stop - Duration::seconds( 30 ) {
+						// Shutting down.
+						return Ok( 0.75 );
+					} else {
+						// Normal work.
+						return Ok( 0.1 );
+					}
+				} else {
+					return Ok( 0.0 );
+				}
+			},
+			Consumer::User => {
+				// Only after the boot time is done, the user is taking its load. Near the end of the usage time, the user has almost no load.
+				if time >= self.start + Duration::seconds( 90 ) && time <= self.stop - Duration::seconds( 30 ) {
+					return Ok( self.load );
+				} else {
+					return Ok( 0.0 );
+				}
+			},
+			_ => return Err( "Consumer not legal" ),
 		}
 	}
 }
