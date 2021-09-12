@@ -62,7 +62,14 @@ impl FromWorld for ComputerMaterials {
 
 
 /// This component represents a CPU of the Computer.
-pub struct Cpu;
+pub struct Cpu {
+	/// The capacity represents the computers performance. The higher the [`capacity`] the more operations it can perform each time unit.
+	capacity: u32,
+}
+
+
+/// This component represents an instrument of the CPU.
+pub struct InstrumentCpu;
 
 
 /// This component represents a usage information.
@@ -72,7 +79,7 @@ pub struct Usage {
 	consumer: Consumer,
 
 	/// The load between 0 (no load at all) and 1 (full load).
-	load: f32,
+	load: u32,
 
 	/// The amount of jitter of the usage. The higher the number the more the value jitters.
 	jitter: f32,
@@ -101,7 +108,9 @@ pub fn spawn_cpu(
 			sprite: Sprite::new( Vec2::new( 120.0, 120.0 ) ),
 			..Default::default()
 		} )
-		.insert( Cpu )
+		.insert( Cpu {
+			capacity: 1000,
+		} )
 		.with_children( |parent| {
 			// Create CPU usage bars
 			parent
@@ -111,11 +120,11 @@ pub fn spawn_cpu(
 					sprite: Sprite::new( Vec2::new( 20.0, 100.0 ) ),
 					..Default::default()
 				} )
-				.insert( Cpu )
+				.insert( InstrumentCpu )
 				.insert( StatusBar )
 				.insert( Usage{
 					consumer: Consumer::System,
-					load: 0.0,
+					load: 0,
 					jitter: 0.0,
 				} );
 			parent
@@ -125,11 +134,11 @@ pub fn spawn_cpu(
 					sprite: Sprite::new( Vec2::new( 20.0, 100.0 ) ),
 					..Default::default()
 				} )
-				.insert( Cpu )
+				.insert( InstrumentCpu )
 				.insert( StatusBar )
 				.insert( Usage{
 					consumer: Consumer::User,
-					load: 0.0,
+					load: 0,
 					jitter: 0.0,
 				} );
 			parent
@@ -139,11 +148,11 @@ pub fn spawn_cpu(
 					sprite: Sprite::new( Vec2::new( 20.0, 100.0 ) ),
 					..Default::default()
 				} )
-				.insert( Cpu )
+				.insert( InstrumentCpu )
 				.insert( StatusBar )
 				.insert( Usage{
 					consumer: Consumer::Enemy,
-					load: 0.0,
+					load: 0,
 					jitter: 0.0,
 				} );
 			parent
@@ -153,11 +162,11 @@ pub fn spawn_cpu(
 					sprite: Sprite::new( Vec2::new( 20.0, 100.0 ) ),
 					..Default::default()
 				} )
-				.insert( Cpu )
+				.insert( InstrumentCpu )
 				.insert( StatusBar )
 				.insert( Usage{
 					consumer: Consumer::Player,
-					load: 0.0,
+					load: 0,
 					jitter: 0.0,
 				} );
 		} );
@@ -184,10 +193,10 @@ pub fn update_usage(
 
 /// Introduce a slight jitter on all usage displays.
 pub fn jitter_usage(
-	mut query: Query<&mut Usage, With<Cpu>>
+	mut query: Query<&mut Usage, With<InstrumentCpu>>
 ) {
 	for mut usage in query.iter_mut() {
-		if usage.load > 0.0 {
+		if usage.load > 0 {
 			usage.jitter = 0.04 * rand::random::<f32>() - 0.02;
 		} else {
 			usage.jitter = 0.0;
@@ -197,10 +206,14 @@ pub fn jitter_usage(
 
 
 /// Update the usage display. This moves the current usage value slowly to the target usage value so that the change is smooth and is not jumping around.
-pub fn update_usage_smooth( mut query: Query<( &Usage, &mut Transform )> ) {
+pub fn update_usage_smooth(
+	mut query: Query<( &mut Transform, &Usage ), With<InstrumentCpu>>,
+	cpu_query: Query<&Cpu>,
+) {
+	let cpu = cpu_query.single().unwrap();
 	let step = 0.01;
-	for ( usage, mut transform ) in query.iter_mut() {
-		let scale_target = usage.load + usage.jitter;
+	for ( mut transform, usage ) in query.iter_mut() {
+		let scale_target = ( usage.load as f32 / cpu.capacity as f32 ) + usage.jitter;
 		if transform.scale.y > scale_target + step {
 			transform.scale.y -= step;
 		} else if transform.scale.y < scale_target - step {

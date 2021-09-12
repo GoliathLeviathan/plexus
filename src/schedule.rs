@@ -51,7 +51,7 @@ pub struct ComputerSchedule {
 // 	template: String,
 	pub start: NaiveTime,
 	pub stop: NaiveTime,
-	pub load: f32,
+	pub load: u32,
 }
 
 impl ComputerSchedule {
@@ -62,31 +62,31 @@ impl ComputerSchedule {
 // 			template: template,
 			start: NaiveTime::from_hms( 14, 32, 30 ),
 			stop: NaiveTime::from_hms( 14, 36, 40 ),
-			load: 0.5,
+			load: 500,
 		}
 	}
 
 	/// Returns the current load (by the user) of the computer at the specified time.
-	pub fn load( &self, consumer: &Consumer, time: NaiveTime ) -> Result<f32, &str> {
+	pub fn load( &self, consumer: &Consumer, time: NaiveTime ) -> Result<u32, &str> {
 		match consumer {
 			Consumer::System => {
 				if time >= self.start && time <= self.stop {
 					// The system needs some time to boot up. During this time the system load is high and gets lower at the end.
 					if time < self.start + Duration::seconds( 45 ) {
 						// First part of the booting process.
-						return Ok( 0.9 );
+						return Ok( 900 );
 					} else if time < self.start + Duration::seconds( 90 ) {
 						// Second part of the booting process.
-						return Ok( 0.75 );
+						return Ok( 750 );
 					} else if time > self.stop - Duration::seconds( 30 ) {
 						// Shutting down.
-						return Ok( 0.75 );
+						return Ok( 750 );
 					} else {
 						// Normal work.
-						return Ok( 0.1 );
+						return Ok( 100 );
 					}
 				} else {
-					return Ok( 0.0 );
+					return Ok( 0 );
 				}
 			},
 			Consumer::User => {
@@ -94,7 +94,7 @@ impl ComputerSchedule {
 				if time >= self.start + Duration::seconds( 90 ) && time <= self.stop - Duration::seconds( 30 ) {
 					return Ok( self.load );
 				} else {
-					return Ok( 0.0 );
+					return Ok( 0 );
 				}
 			},
 			_ => return Err( "Consumer not legal" ),
