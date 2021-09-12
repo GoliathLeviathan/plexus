@@ -100,4 +100,9 @@ impl ComputerSchedule {
 			_ => return Err( "Consumer not legal" ),
 		}
 	}
+
+	/// If the computer is on at the time provided, this returns `true` otherwise `false`.
+	pub fn is_on( &self, time: NaiveTime ) -> bool {
+		return time >= self.start && time <= self.stop;
+	}
 }

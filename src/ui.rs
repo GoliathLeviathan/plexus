@@ -9,7 +9,7 @@
 
 use bevy::prelude::*;
 
-use crate::schedule::Clock;
+use crate::schedule::{Clock, ComputerSchedule};
 use crate::computer::{Usage, InstrumentCpu, ConsumerPlayer};
 
 
@@ -23,6 +23,7 @@ pub struct UiMaterials {
 	normal: Handle<ColorMaterial>,
 	hovered: Handle<ColorMaterial>,
 	pressed: Handle<ColorMaterial>,
+	disabled: Handle<ColorMaterial>,
 }
 
 impl FromWorld for UiMaterials {
@@ -32,6 +33,7 @@ impl FromWorld for UiMaterials {
 			normal: materials.add( Color::rgb( 0.0, 0.4, 0.0 ).into() ),
 			hovered: materials.add( Color::rgb( 0.0, 0.45, 0.0 ).into() ),
 			pressed: materials.add( Color::rgb( 0.0, 0.6, 0.0 ).into() ),
+			disabled: materials.add( Color::rgb( 0.5, 0.5, 0.5 ).into() ),
 		}
 	}
 }
@@ -43,7 +45,15 @@ impl FromWorld for UiMaterials {
 // Components
 
 
+pub struct Widget {
+	disabled: bool,
+}
+
+
 pub struct ClockWidget;
+
+
+pub struct ComputerInteraction;
 
 
 pub struct SpeedButton {
@@ -117,6 +127,9 @@ pub fn spawn_ui(
 			material: materials.normal.clone(),
 			..Default::default()
 		} )
+		.insert( Widget {
+			disabled: false,
+		} )
 		.insert( SpeedButton {
 			multiplier: 1.0,
 		} )
@@ -152,6 +165,9 @@ pub fn spawn_ui(
 			},
 			material: materials.normal.clone(),
 			..Default::default()
+		} )
+		.insert( Widget {
+			disabled: false,
 		} )
 		.insert( SpeedButton {
 			multiplier: 16.0,
@@ -189,6 +205,9 @@ pub fn spawn_ui(
 			material: materials.normal.clone(),
 			..Default::default()
 		} )
+		.insert( Widget {
+			disabled: false,
+		} )
 		.insert( SpeedButton {
 			multiplier: 128.0,
 		} )
@@ -224,6 +243,9 @@ pub fn spawn_ui(
 			},
 			material: materials.normal.clone(),
 			..Default::default()
+		} )
+		.insert( Widget {
+			disabled: false,
 		} )
 		.insert( SpeedButton {
 			multiplier: 1024.0,
@@ -263,6 +285,10 @@ pub fn spawn_ui(
 			material: materials.normal.clone(),
 			..Default::default()
 		} )
+		.insert( Widget {
+			disabled: false,
+		} )
+		.insert( ComputerInteraction )
 		.insert( LoadButton {
 			value: 10,
 		} )
@@ -298,6 +324,10 @@ pub fn spawn_ui(
 			material: materials.normal.clone(),
 			..Default::default()
 		} )
+		.insert( Widget {
+			disabled: false,
+		} )
+		.insert( ComputerInteraction )
 		.insert( LoadButton {
 			value: -10,
 		} )
@@ -318,14 +348,40 @@ pub fn spawn_ui(
 }
 
 
+/// Disable widgets that control the Computer, when the computer is off.
+/// TODO: This is checking the clock every frame and changes the material every frame. There must be a better way.
+pub fn ui_disable(
+	materials: Res<UiMaterials>,
+	clock_query: Query<&Clock>,
+	schedule_query: Query<&ComputerSchedule>,
+	mut query: Query<( &mut Widget, &mut Handle<ColorMaterial> ), ( With<Button>, With<ComputerInteraction> )>,
+) {
+	let clock = clock_query.single().unwrap();
+	let schedule = schedule_query.single().unwrap();
+	for ( mut widget, mut material ) in query.iter_mut() {
+		if schedule.is_on( clock.datetime.time() ) {
+			widget.disabled = false;
+			*material = materials.normal.clone();
+		} else {
+			widget.disabled = true;
+			*material = materials.disabled.clone();
+		}
+	}
+}
+
+
 pub fn ui_interact(
 	materials: Res<UiMaterials>,
 	mut interaction_query: Query<
-		( &Interaction, &mut Handle<ColorMaterial> ),
+		( &Interaction, &Widget, &mut Handle<ColorMaterial> ),
 		( Changed<Interaction>, With<Button> )
 	>,
 ) {
-	for ( interaction, mut material ) in interaction_query.iter_mut() {
+	for ( interaction, widget, mut material ) in interaction_query.iter_mut() {
+		if widget.disabled {
+			// Disabled widgets give no feedback.
+			continue;
+		}
 		match *interaction {
 			Interaction::Clicked => {
 				*material = materials.pressed.clone();
