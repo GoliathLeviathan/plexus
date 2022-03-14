@@ -9,6 +9,7 @@
 
 use bevy::prelude::*;
 
+use crate::materials::CustomColor;
 use crate::schedule::{Clock, ComputerSchedule};
 
 
@@ -129,9 +130,12 @@ pub fn spawn_cpu(
 	// Create CPU-block
 	commands
 		.spawn_bundle( SpriteBundle {
-			material: materials.component.clone(),
 			transform: Transform::from_xyz( -140.0, 100.0, 0.0 ),
-			sprite: Sprite::new( Vec2::new( CPU_SIZE[0], CPU_SIZE[1] ) ),
+			sprite: Sprite {
+				custom_size: Some( Vec2::new( CPU_SIZE[0], CPU_SIZE[1] ) ),
+				color: CustomColor::COMPONENT,
+				..Default::default()
+			},
 			..Default::default()
 		} )
 		.insert( Cpu {
@@ -141,9 +145,12 @@ pub fn spawn_cpu(
 			// Create CPU usage bars
 			parent
 				.spawn_bundle( SpriteBundle {
-					material: materials.system.clone(),
 					transform: Transform::from_xyz( 0.0, -USAGE_BAR_SIZE[1] / 2.0, 1.0 ),
-					sprite: Sprite::new( Vec2::new( USAGE_BAR_SIZE[0], USAGE_BAR_SIZE[1] ) ),
+					sprite: Sprite {
+						custom_size: Some( Vec2::new( USAGE_BAR_SIZE[0], USAGE_BAR_SIZE[1] ) ),
+						color: CustomColor::SYSTEM,
+						..Default::default()
+					},
 					..Default::default()
 				} )
 				.insert( InstrumentCpu )
@@ -155,9 +162,12 @@ pub fn spawn_cpu(
 				} );
 			parent
 				.spawn_bundle( SpriteBundle {
-					material: materials.user.clone(),
 					transform: Transform::from_xyz( 0.0, -USAGE_BAR_SIZE[1] / 2.0, 1.0 ),
-					sprite: Sprite::new( Vec2::new( USAGE_BAR_SIZE[0], USAGE_BAR_SIZE[1] ) ),
+					sprite: Sprite {
+						custom_size: Some( Vec2::new( USAGE_BAR_SIZE[0], USAGE_BAR_SIZE[1] ) ),
+						color: CustomColor::USER,
+						..Default::default()
+					},
 					..Default::default()
 				} )
 				.insert( InstrumentCpu )
@@ -169,9 +179,12 @@ pub fn spawn_cpu(
 				} );
 			parent
 				.spawn_bundle( SpriteBundle {
-					material: materials.enemy.clone(),
 					transform: Transform::from_xyz( 0.0, -USAGE_BAR_SIZE[1] / 2.0, 1.0 ),
-					sprite: Sprite::new( Vec2::new( USAGE_BAR_SIZE[0], USAGE_BAR_SIZE[1] ) ),
+					sprite: Sprite {
+						custom_size: Some( Vec2::new( USAGE_BAR_SIZE[0], USAGE_BAR_SIZE[1] ) ),
+						color: CustomColor::ENEMY,
+						..Default::default()
+					},
 					..Default::default()
 				} )
 				.insert( InstrumentCpu )
@@ -183,9 +196,12 @@ pub fn spawn_cpu(
 				} );
 			parent
 				.spawn_bundle( SpriteBundle {
-					material: materials.player.clone(),
 					transform: Transform::from_xyz( 0.0, -USAGE_BAR_SIZE[1] / 2.0, 1.0 ),
-					sprite: Sprite::new( Vec2::new( USAGE_BAR_SIZE[0], USAGE_BAR_SIZE[1] ) ),
+					sprite: Sprite {
+						custom_size: Some( Vec2::new( USAGE_BAR_SIZE[0], USAGE_BAR_SIZE[1] ) ),
+						color: CustomColor::PLAYER,
+						..Default::default()
+					},
 					..Default::default()
 				} )
 				.insert( InstrumentCpu )

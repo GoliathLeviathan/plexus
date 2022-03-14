@@ -12,6 +12,8 @@ use chrono::naive::NaiveDateTime;
 use bevy::prelude::*;
 use bevy::core::FixedTimestep;
 
+mod materials;
+
 // mod consumers;
 
 mod schedule;
@@ -82,9 +84,8 @@ fn setup(
 	commands.spawn_bundle( UiCameraBundle::default() );
 
 	// Load sprite
-	let texture_handle = asset_server.load( "Processor.png" );
 	commands.spawn_bundle( SpriteBundle {
-		material: materials.add( texture_handle.into() ),
+		texture: asset_server.load( "Processor.png" ),
 		..Default::default()
 	} );
 
