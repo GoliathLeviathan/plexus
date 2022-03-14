@@ -206,8 +206,8 @@ pub fn update_usage(
 	clock_query: Query<&Clock>,
 	schedule_query: Query<&ComputerSchedule>
 ) {
-	let clock = clock_query.single().unwrap();
-	let schedule = schedule_query.single().unwrap();
+	let clock = clock_query.single();
+	let schedule = schedule_query.single();
 	for mut usage in query.iter_mut() {
 		let load = schedule.load( &usage.consumer, clock.datetime.time() );
 		match load {
@@ -237,7 +237,7 @@ pub fn draw_usage_smooth(
 	mut query: Query<( &mut Transform, &Usage ), With<InstrumentCpu>>,
 	cpu_query: Query<&Cpu>,
 ) {
-	let cpu = cpu_query.single().unwrap();
+	let cpu = cpu_query.single();
 	let step = 0.01;
 	let mut transform_prev: Option<Mut<Transform>> = None;
 	for ( mut transform, usage ) in query.iter_mut() {

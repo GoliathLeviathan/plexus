@@ -108,8 +108,8 @@ fn update_clock(
 	mut query: Query<&mut Text, With<ClockWidget>>,
 	mut clock_query: Query<&mut Clock>,
 ) {
-	let mut clock = clock_query.single_mut().unwrap();
-	let mut text = query.single_mut().unwrap();
+	let mut clock = clock_query.single_mut();
+	let mut text = query.single_mut();
 
 	// Advance in-game time by the real time since the last frame but with the in-game multiplier.
 	let time_step_msecs = time.delta_seconds() * clock.speed * 1_000_000.0;

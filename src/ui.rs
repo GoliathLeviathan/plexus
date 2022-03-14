@@ -371,8 +371,8 @@ pub fn ui_disable(
 	schedule_query: Query<&ComputerSchedule>,
 	mut query: Query<( &mut Widget, &mut Handle<ColorMaterial> ), ( With<Button>, With<ComputerInteraction> )>,
 ) {
-	let clock = clock_query.single().unwrap();
-	let schedule = schedule_query.single().unwrap();
+	let clock = clock_query.single();
+	let schedule = schedule_query.single();
 	for ( mut widget, mut material ) in query.iter_mut() {
 		if schedule.is_on( clock.datetime.time() ) {
 			widget.disabled = false;
@@ -419,7 +419,7 @@ pub fn change_time_speed_by_button(
 	>,
 	mut clock_query: Query<&mut Clock>,
 ) {
-	let mut clock = clock_query.single_mut().unwrap();
+	let mut clock = clock_query.single_mut();
 	for ( button, interaction ) in interaction_query.iter_mut() {
 		match *interaction {
 			Interaction::Clicked => {
@@ -438,7 +438,7 @@ pub fn change_load_by_button(
 		( Changed<Interaction>, With<Button> )
 	>,
 ) {
-	let mut usage = usage_query.single_mut().unwrap();
+	let mut usage = usage_query.single_mut();
 	for ( button, interaction ) in interaction_query.iter_mut() {
 		match *interaction {
 			Interaction::Clicked => {
