@@ -80,6 +80,7 @@ impl FromWorld for ComputerMaterials {
 
 
 /// This component represents a CPU of the Computer.
+#[derive( Component )]
 pub struct Cpu {
 	/// The capacity represents the computers performance. The higher the [`capacity`] the more operations it can perform each time unit.
 	capacity: u32,
@@ -87,11 +88,12 @@ pub struct Cpu {
 
 
 /// This component represents an instrument of the CPU.
+#[derive( Component )]
 pub struct InstrumentCpu;
 
 
 /// This component represents a usage information.
-#[derive( Debug )]
+#[derive( Debug, Component )]
 pub struct Usage {
 	/// The type of the consumer having this usage.
 	consumer: Consumer,
@@ -105,10 +107,12 @@ pub struct Usage {
 
 
 /// This is used by the player as a consumer.
+#[derive( Component )]
 pub struct ConsumerPlayer;
 
 
 /// This component represents a status bar.
+#[derive( Component )]
 pub struct StatusBar;
 
 

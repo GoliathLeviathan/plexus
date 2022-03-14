@@ -45,22 +45,27 @@ impl FromWorld for UiMaterials {
 // Components
 
 
+#[derive( Component )]
 pub struct Widget {
 	disabled: bool,
 }
 
 
+#[derive( Component )]
 pub struct ClockWidget;
 
 
+#[derive( Component )]
 pub struct ComputerInteraction;
 
 
+#[derive( Component )]
 pub struct SpeedButton {
 	multiplier: f32,
 }
 
 
+#[derive( Component )]
 pub struct LoadButton {
 	value: i32,
 }
