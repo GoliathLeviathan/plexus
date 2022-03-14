@@ -12,6 +12,8 @@ use chrono::naive::NaiveDateTime;
 use bevy::prelude::*;
 use bevy::core::FixedTimestep;
 
+// mod consumers;
+
 mod schedule;
 use schedule::{Clock, ComputerSchedule};
 
@@ -43,6 +45,7 @@ impl Plugin for ComputerPlugin {
 	fn build( &self, app: &mut App ) {
 		app.init_resource::<UiMaterials>()
 			.init_resource::<ComputerMaterials>()
+// 			.add_event::<TimeStepEvent>()
 			.add_startup_system( setup.system() )
 			.add_startup_system( ui::spawn_ui.system() )
 			.add_startup_system( computer::spawn_cpu.system() )

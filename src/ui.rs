@@ -19,6 +19,16 @@ use crate::computer::{Usage, InstrumentCpu, ConsumerPlayer};
 // Resources
 
 
+enum CustomColor {}
+
+impl CustomColor {
+	pub const NORMAL: Color = Color::rgb( 0.0, 0.4, 0.0 );
+	pub const HOVERED: Color = Color::rgb( 0.0, 0.45, 0.0 );
+	pub const PRESSED: Color = Color::rgb( 0.0, 0.4, 0.0 );
+	pub const DISABLED: Color = Color::rgb( 0.0, 0.45, 0.0 );
+}
+
+
 pub struct UiMaterials {
 	normal: Handle<ColorMaterial>,
 	hovered: Handle<ColorMaterial>,
@@ -129,7 +139,7 @@ pub fn spawn_ui(
 				},
 				..Default::default()
 			},
-			material: materials.normal.clone(),
+			color: UiColor::from( CustomColor::NORMAL ),
 			..Default::default()
 		} )
 		.insert( Widget {
@@ -168,7 +178,7 @@ pub fn spawn_ui(
 				},
 				..Default::default()
 			},
-			material: materials.normal.clone(),
+			color: UiColor::from( CustomColor::NORMAL ),
 			..Default::default()
 		} )
 		.insert( Widget {
@@ -207,7 +217,7 @@ pub fn spawn_ui(
 				},
 				..Default::default()
 			},
-			material: materials.normal.clone(),
+			color: UiColor::from( CustomColor::NORMAL ),
 			..Default::default()
 		} )
 		.insert( Widget {
@@ -246,7 +256,7 @@ pub fn spawn_ui(
 				},
 				..Default::default()
 			},
-			material: materials.normal.clone(),
+			color: UiColor::from( CustomColor::NORMAL ),
 			..Default::default()
 		} )
 		.insert( Widget {
@@ -287,7 +297,7 @@ pub fn spawn_ui(
 				},
 				..Default::default()
 			},
-			material: materials.normal.clone(),
+			color: UiColor::from( CustomColor::NORMAL ),
 			..Default::default()
 		} )
 		.insert( Widget {
@@ -326,7 +336,7 @@ pub fn spawn_ui(
 				},
 				..Default::default()
 			},
-			material: materials.normal.clone(),
+			color: UiColor::from( CustomColor::NORMAL ),
 			..Default::default()
 		} )
 		.insert( Widget {
