@@ -81,7 +81,6 @@ pub struct LoadButton {
 pub fn spawn_ui(
 	mut commands: Commands,
 	asset_server: Res<AssetServer>,
-	materials: Res<UiMaterials>,
 ) {
 	// Clock
 	commands
@@ -357,46 +356,47 @@ pub fn spawn_ui(
 /// Disable widgets that control the Computer, when the computer is off.
 /// TODO: This is checking the clock every frame and changes the material every frame. There must be a better way.
 pub fn ui_disable(
-	materials: Res<UiMaterials>,
 	clock_query: Query<&Clock>,
 	schedule_query: Query<&ComputerSchedule>,
-	mut query: Query<( &mut Widget, &mut Handle<ColorMaterial> ), ( With<Button>, With<ComputerInteraction> )>,
+	mut query: Query<
+		( &mut Widget, &mut UiColor ),
+		( With<Button>, With<ComputerInteraction> )
+	>,
 ) {
 	let clock = clock_query.single();
 	let schedule = schedule_query.single();
-	for ( mut widget, mut material ) in query.iter_mut() {
+	for ( mut widget, mut color ) in query.iter_mut() {
 		if schedule.is_on( clock.datetime.time() ) {
 			widget.disabled = false;
-			*material = materials.normal.clone();
+			*color = CustomColor::NORMAL.into();
 		} else {
 			widget.disabled = true;
-			*material = materials.disabled.clone();
+			*color = CustomColor::DISABLED.into();
 		}
 	}
 }
 
 
 pub fn ui_interact(
-	materials: Res<UiMaterials>,
 	mut interaction_query: Query<
-		( &Interaction, &Widget, &mut Handle<ColorMaterial> ),
+		( &Interaction, &Widget, &mut UiColor ),
 		( Changed<Interaction>, With<Button> )
 	>,
 ) {
-	for ( interaction, widget, mut material ) in interaction_query.iter_mut() {
+	for ( interaction, widget, mut color ) in interaction_query.iter_mut() {
 		if widget.disabled {
 			// Disabled widgets give no feedback.
 			continue;
 		}
 		match *interaction {
 			Interaction::Clicked => {
-				*material = materials.pressed.clone();
+				*color = CustomColor::PRESSED.into();
 			},
 			Interaction::Hovered => {
-				*material = materials.hovered.clone();
+				*color = CustomColor::HOVERED.into();
 			},
 			Interaction::None => {
-				*material = materials.normal.clone();
+				*color = CustomColor::NORMAL.into();
 			},
 		}
 	}

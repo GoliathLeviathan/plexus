@@ -77,7 +77,6 @@ impl Plugin for ComputerPlugin {
 fn setup(
 	mut commands: Commands,
 	asset_server: Res<AssetServer>,
-	mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
 	// Cameras
 	commands.spawn_bundle( OrthographicCameraBundle::new_2d() );

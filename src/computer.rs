@@ -125,7 +125,6 @@ pub struct StatusBar;
 
 pub fn spawn_cpu(
 	mut commands: Commands,
-	materials: Res<ComputerMaterials>,
 ) {
 	// Create CPU-block
 	commands
