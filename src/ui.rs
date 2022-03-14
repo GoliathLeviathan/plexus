@@ -17,32 +17,6 @@ use crate::computer::{Usage, InstrumentCpu, ConsumerPlayer};
 
 
 //=============================================================================
-// Resources
-
-
-pub struct UiMaterials {
-	normal: Handle<ColorMaterial>,
-	hovered: Handle<ColorMaterial>,
-	pressed: Handle<ColorMaterial>,
-	disabled: Handle<ColorMaterial>,
-}
-
-impl FromWorld for UiMaterials {
-	fn from_world( world: &mut World ) -> Self {
-		let mut materials = world.get_resource_mut::<Assets<ColorMaterial>>().unwrap();
-		UiMaterials {
-			normal: materials.add( Color::rgb( 0.0, 0.4, 0.0 ).into() ),
-			hovered: materials.add( Color::rgb( 0.0, 0.45, 0.0 ).into() ),
-			pressed: materials.add( Color::rgb( 0.0, 0.6, 0.0 ).into() ),
-			disabled: materials.add( Color::rgb( 0.5, 0.5, 0.5 ).into() ),
-		}
-	}
-}
-
-
-
-
-//=============================================================================
 // Components
 
 

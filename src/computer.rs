@@ -49,34 +49,6 @@ pub enum Consumer {
 
 
 //=============================================================================
-// Resources
-
-
-pub struct ComputerMaterials {
-	component: Handle<ColorMaterial>,
-	player: Handle<ColorMaterial>,
-	system: Handle<ColorMaterial>,
-	user: Handle<ColorMaterial>,
-	enemy: Handle<ColorMaterial>,
-}
-
-impl FromWorld for ComputerMaterials {
-	fn from_world( world: &mut World ) -> Self {
-		let mut materials = world.get_resource_mut::<Assets<ColorMaterial>>().unwrap();
-		ComputerMaterials {
-			component: materials.add( Color::rgb( 0.1, 0.1, 0.1 ).into() ),
-			player: materials.add( Color::rgb( 0.0, 0.5, 0.0 ).into() ),
-			system: materials.add( Color::rgb( 0.5, 0.0, 0.5 ).into() ),
-			user: materials.add( Color::rgb( 0.0, 0.0, 0.5 ).into() ),
-			enemy: materials.add( Color::rgb( 0.5, 0.0, 0.0 ).into() ),
-		}
-	}
-}
-
-
-
-
-//=============================================================================
 // Components
 
 

@@ -20,10 +20,9 @@ mod schedule;
 use schedule::{Clock, ComputerSchedule};
 
 mod ui;
-use ui::{UiMaterials, ClockWidget};
+use ui::ClockWidget;
 
 mod computer;
-use computer::ComputerMaterials;
 
 
 
@@ -45,8 +44,7 @@ pub struct ComputerPlugin;
 
 impl Plugin for ComputerPlugin {
 	fn build( &self, app: &mut App ) {
-		app.init_resource::<UiMaterials>()
-			.init_resource::<ComputerMaterials>()
+		app
 // 			.add_event::<TimeStepEvent>()
 			.add_startup_system( setup.system() )
 			.add_startup_system( ui::spawn_ui.system() )
