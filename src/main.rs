@@ -12,14 +12,17 @@ use chrono::naive::NaiveDateTime;
 use bevy::prelude::*;
 use bevy::core::FixedTimestep;
 
+mod materials;
+
+// mod consumers;
+
 mod schedule;
 use schedule::{Clock, ComputerSchedule};
 
 mod ui;
-use ui::{UiMaterials, ClockWidget};
+use ui::ClockWidget;
 
 mod computer;
-use computer::ComputerMaterials;
 
 
 
@@ -40,9 +43,9 @@ const TIMESTAMP_START: i64 = 2481201120;
 pub struct ComputerPlugin;
 
 impl Plugin for ComputerPlugin {
-	fn build( &self, app: &mut AppBuilder ) {
-		app.init_resource::<UiMaterials>()
-			.init_resource::<ComputerMaterials>()
+	fn build( &self, app: &mut App ) {
+		app
+// 			.add_event::<TimeStepEvent>()
 			.add_startup_system( setup.system() )
 			.add_startup_system( ui::spawn_ui.system() )
 			.add_startup_system( computer::spawn_cpu.system() )
@@ -72,16 +75,14 @@ impl Plugin for ComputerPlugin {
 fn setup(
 	mut commands: Commands,
 	asset_server: Res<AssetServer>,
-	mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
 	// Cameras
 	commands.spawn_bundle( OrthographicCameraBundle::new_2d() );
 	commands.spawn_bundle( UiCameraBundle::default() );
 
 	// Load sprite
-	let texture_handle = asset_server.load( "Processor.png" );
 	commands.spawn_bundle( SpriteBundle {
-		material: materials.add( texture_handle.into() ),
+		texture: asset_server.load( "Processor.png" ),
 		..Default::default()
 	} );
 
@@ -105,8 +106,8 @@ fn update_clock(
 	mut query: Query<&mut Text, With<ClockWidget>>,
 	mut clock_query: Query<&mut Clock>,
 ) {
-	let mut clock = clock_query.single_mut().unwrap();
-	let mut text = query.single_mut().unwrap();
+	let mut clock = clock_query.single_mut();
+	let mut text = query.single_mut();
 
 	// Advance in-game time by the real time since the last frame but with the in-game multiplier.
 	let time_step_msecs = time.delta_seconds() * clock.speed * 1_000_000.0;
@@ -124,7 +125,7 @@ fn update_clock(
 
 
 fn main() {
-	App::build()
+	App::new()
 		.add_plugins( DefaultPlugins )
 		.add_plugin( ComputerPlugin )
 		.run();

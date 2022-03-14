@@ -9,6 +9,7 @@
 
 use chrono::Duration;
 use chrono::naive::{NaiveTime, NaiveDateTime};
+use bevy::prelude::Component;
 
 use crate::computer::Consumer;
 
@@ -19,7 +20,7 @@ use crate::computer::Consumer;
 // Events
 
 
-pub struct TimeStepEvent;
+// pub struct TimeStepEvent;
 
 
 
@@ -29,6 +30,7 @@ pub struct TimeStepEvent;
 
 
 /// The clock holding the actual in-game time.
+#[derive( Component )]
 pub struct Clock{
 	/// The in-game date and time.
 	pub datetime: NaiveDateTime,
@@ -46,7 +48,7 @@ impl Clock {
 
 
 /// The usage schedule of the computer.
-#[derive( Debug )]
+#[derive( Debug, Component )]
 pub struct ComputerSchedule {
 // 	template: String,
 	pub start: NaiveTime,

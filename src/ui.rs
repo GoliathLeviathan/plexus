@@ -9,34 +9,9 @@
 
 use bevy::prelude::*;
 
+use crate::materials::CustomColor;
 use crate::schedule::{Clock, ComputerSchedule};
 use crate::computer::{Usage, InstrumentCpu, ConsumerPlayer};
-
-
-
-
-//=============================================================================
-// Resources
-
-
-pub struct UiMaterials {
-	normal: Handle<ColorMaterial>,
-	hovered: Handle<ColorMaterial>,
-	pressed: Handle<ColorMaterial>,
-	disabled: Handle<ColorMaterial>,
-}
-
-impl FromWorld for UiMaterials {
-	fn from_world( world: &mut World ) -> Self {
-		let mut materials = world.get_resource_mut::<Assets<ColorMaterial>>().unwrap();
-		UiMaterials {
-			normal: materials.add( Color::rgb( 0.0, 0.4, 0.0 ).into() ),
-			hovered: materials.add( Color::rgb( 0.0, 0.45, 0.0 ).into() ),
-			pressed: materials.add( Color::rgb( 0.0, 0.6, 0.0 ).into() ),
-			disabled: materials.add( Color::rgb( 0.5, 0.5, 0.5 ).into() ),
-		}
-	}
-}
 
 
 
@@ -45,22 +20,27 @@ impl FromWorld for UiMaterials {
 // Components
 
 
+#[derive( Component )]
 pub struct Widget {
 	disabled: bool,
 }
 
 
+#[derive( Component )]
 pub struct ClockWidget;
 
 
+#[derive( Component )]
 pub struct ComputerInteraction;
 
 
+#[derive( Component )]
 pub struct SpeedButton {
 	multiplier: f32,
 }
 
 
+#[derive( Component )]
 pub struct LoadButton {
 	value: i32,
 }
@@ -75,7 +55,6 @@ pub struct LoadButton {
 pub fn spawn_ui(
 	mut commands: Commands,
 	asset_server: Res<AssetServer>,
-	materials: Res<UiMaterials>,
 ) {
 	// Clock
 	commands
@@ -124,7 +103,7 @@ pub fn spawn_ui(
 				},
 				..Default::default()
 			},
-			material: materials.normal.clone(),
+			color: UiColor::from( CustomColor::NORMAL ),
 			..Default::default()
 		} )
 		.insert( Widget {
@@ -163,7 +142,7 @@ pub fn spawn_ui(
 				},
 				..Default::default()
 			},
-			material: materials.normal.clone(),
+			color: UiColor::from( CustomColor::NORMAL ),
 			..Default::default()
 		} )
 		.insert( Widget {
@@ -202,7 +181,7 @@ pub fn spawn_ui(
 				},
 				..Default::default()
 			},
-			material: materials.normal.clone(),
+			color: UiColor::from( CustomColor::NORMAL ),
 			..Default::default()
 		} )
 		.insert( Widget {
@@ -241,7 +220,7 @@ pub fn spawn_ui(
 				},
 				..Default::default()
 			},
-			material: materials.normal.clone(),
+			color: UiColor::from( CustomColor::NORMAL ),
 			..Default::default()
 		} )
 		.insert( Widget {
@@ -282,7 +261,7 @@ pub fn spawn_ui(
 				},
 				..Default::default()
 			},
-			material: materials.normal.clone(),
+			color: UiColor::from( CustomColor::NORMAL ),
 			..Default::default()
 		} )
 		.insert( Widget {
@@ -321,7 +300,7 @@ pub fn spawn_ui(
 				},
 				..Default::default()
 			},
-			material: materials.normal.clone(),
+			color: UiColor::from( CustomColor::NORMAL ),
 			..Default::default()
 		} )
 		.insert( Widget {
@@ -351,46 +330,47 @@ pub fn spawn_ui(
 /// Disable widgets that control the Computer, when the computer is off.
 /// TODO: This is checking the clock every frame and changes the material every frame. There must be a better way.
 pub fn ui_disable(
-	materials: Res<UiMaterials>,
 	clock_query: Query<&Clock>,
 	schedule_query: Query<&ComputerSchedule>,
-	mut query: Query<( &mut Widget, &mut Handle<ColorMaterial> ), ( With<Button>, With<ComputerInteraction> )>,
+	mut query: Query<
+		( &mut Widget, &mut UiColor ),
+		( With<Button>, With<ComputerInteraction> )
+	>,
 ) {
-	let clock = clock_query.single().unwrap();
-	let schedule = schedule_query.single().unwrap();
-	for ( mut widget, mut material ) in query.iter_mut() {
+	let clock = clock_query.single();
+	let schedule = schedule_query.single();
+	for ( mut widget, mut color ) in query.iter_mut() {
 		if schedule.is_on( clock.datetime.time() ) {
 			widget.disabled = false;
-			*material = materials.normal.clone();
+			*color = CustomColor::NORMAL.into();
 		} else {
 			widget.disabled = true;
-			*material = materials.disabled.clone();
+			*color = CustomColor::DISABLED.into();
 		}
 	}
 }
 
 
 pub fn ui_interact(
-	materials: Res<UiMaterials>,
 	mut interaction_query: Query<
-		( &Interaction, &Widget, &mut Handle<ColorMaterial> ),
+		( &Interaction, &Widget, &mut UiColor ),
 		( Changed<Interaction>, With<Button> )
 	>,
 ) {
-	for ( interaction, widget, mut material ) in interaction_query.iter_mut() {
+	for ( interaction, widget, mut color ) in interaction_query.iter_mut() {
 		if widget.disabled {
 			// Disabled widgets give no feedback.
 			continue;
 		}
 		match *interaction {
 			Interaction::Clicked => {
-				*material = materials.pressed.clone();
+				*color = CustomColor::PRESSED.into();
 			},
 			Interaction::Hovered => {
-				*material = materials.hovered.clone();
+				*color = CustomColor::HOVERED.into();
 			},
 			Interaction::None => {
-				*material = materials.normal.clone();
+				*color = CustomColor::NORMAL.into();
 			},
 		}
 	}
@@ -404,7 +384,7 @@ pub fn change_time_speed_by_button(
 	>,
 	mut clock_query: Query<&mut Clock>,
 ) {
-	let mut clock = clock_query.single_mut().unwrap();
+	let mut clock = clock_query.single_mut();
 	for ( button, interaction ) in interaction_query.iter_mut() {
 		match *interaction {
 			Interaction::Clicked => {
@@ -423,7 +403,7 @@ pub fn change_load_by_button(
 		( Changed<Interaction>, With<Button> )
 	>,
 ) {
-	let mut usage = usage_query.single_mut().unwrap();
+	let mut usage = usage_query.single_mut();
 	for ( button, interaction ) in interaction_query.iter_mut() {
 		match *interaction {
 			Interaction::Clicked => {
