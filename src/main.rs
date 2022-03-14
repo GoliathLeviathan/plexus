@@ -40,7 +40,7 @@ const TIMESTAMP_START: i64 = 2481201120;
 pub struct ComputerPlugin;
 
 impl Plugin for ComputerPlugin {
-	fn build( &self, app: &mut AppBuilder ) {
+	fn build( &self, app: &mut App ) {
 		app.init_resource::<UiMaterials>()
 			.init_resource::<ComputerMaterials>()
 			.add_startup_system( setup.system() )
@@ -124,7 +124,7 @@ fn update_clock(
 
 
 fn main() {
-	App::build()
+	App::new()
 		.add_plugins( DefaultPlugins )
 		.add_plugin( ComputerPlugin )
 		.run();
