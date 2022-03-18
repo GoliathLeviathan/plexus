@@ -51,49 +51,67 @@ impl Clock {
 #[derive( Debug, Component )]
 pub struct ComputerSchedule {
 // 	template: String,
-	pub start: NaiveTime,
-	pub stop: NaiveTime,
+	pub start: Vec<NaiveTime>,
+	pub duration: Duration,
 	pub load: u32,
 }
 
 impl ComputerSchedule {
+	/// If the computer is currently on, return the time it was started and will stop. Otherwise return `None`.
+	fn start_stop( &self, time: NaiveTime ) -> Option<( NaiveTime, NaiveTime )> {
+		for start in &self.start {
+			let stop = *start + self.duration;
+			if time >= *start && time <= stop {
+				return Some( ( *start, stop ) );
+			}
+		}
+		return None;
+	}
+
 	/// Create a new computer schedule from the template.
 	pub fn from_template( template: &str ) -> Self {
 		// TODO: Ensure that the computer is on for at least 2 minutes to allow for enough time for booting and shutting down.
 		ComputerSchedule {
-// 			template: template,
-			start: NaiveTime::from_hms( 14, 32, 30 ),
-			stop: NaiveTime::from_hms( 14, 36, 40 ),
+			start: vec![
+				NaiveTime::from_hms( 14, 32, 30 ),
+				NaiveTime::from_hms( 14, 42, 40 ),
+				NaiveTime::from_hms( 14, 52, 50 ),
+				NaiveTime::from_hms( 15, 03, 00 ),
+				NaiveTime::from_hms( 15, 13, 10 ),
+				NaiveTime::from_hms( 15, 23, 20 ),
+			],
+			duration: Duration::minutes( 5 ),
 			load: 500,
 		}
 	}
 
 	/// Returns the current load (by the user) of the computer at the specified time.
 	pub fn load( &self, consumer: &Consumer, time: NaiveTime ) -> Result<u32, &str> {
+		let ( start, stop ) = match self.start_stop( time ) {
+			Some( x ) => x,
+			None => return Ok( 0 )
+		};
+
 		match consumer {
 			Consumer::System => {
-				if time >= self.start && time <= self.stop {
-					// The system needs some time to boot up. During this time the system load is high and gets lower at the end.
-					if time < self.start + Duration::seconds( 45 ) {
-						// First part of the booting process.
-						return Ok( 900 );
-					} else if time < self.start + Duration::seconds( 90 ) {
-						// Second part of the booting process.
-						return Ok( 750 );
-					} else if time > self.stop - Duration::seconds( 30 ) {
-						// Shutting down.
-						return Ok( 750 );
-					} else {
-						// Normal work.
-						return Ok( 100 );
-					}
+				// The system needs some time to boot up. During this time the system load is high and gets lower at the end.
+				if time < start + Duration::seconds( 45 ) {
+					// First part of the booting process.
+					return Ok( 900 );
+				} else if time < start + Duration::seconds( 90 ) {
+					// Second part of the booting process.
+					return Ok( 750 );
+				} else if time > stop - Duration::seconds( 30 ) {
+					// Shutting down.
+					return Ok( 750 );
 				} else {
-					return Ok( 0 );
+					// Normal work.
+					return Ok( 100 );
 				}
 			},
 			Consumer::User => {
 				// Only after the boot time is done, the user is taking its load. Near the end of the usage time, the user has almost no load.
-				if time >= self.start + Duration::seconds( 90 ) && time <= self.stop - Duration::seconds( 30 ) {
+				if time >= start + Duration::seconds( 90 ) && time <= stop - Duration::seconds( 30 ) {
 					return Ok( self.load );
 				} else {
 					return Ok( 0 );
@@ -105,6 +123,6 @@ impl ComputerSchedule {
 
 	/// If the computer is on at the time provided, this returns `true` otherwise `false`.
 	pub fn is_on( &self, time: NaiveTime ) -> bool {
-		return time >= self.start && time <= self.stop;
+		return self.start_stop( time ).is_some();
 	}
 }
