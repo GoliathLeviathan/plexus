@@ -57,17 +57,6 @@ pub struct ComputerSchedule {
 }
 
 impl ComputerSchedule {
-	/// If the computer is currently on, return the time it was started and will stop. Otherwise return `None`.
-	fn start_stop( &self, time: NaiveTime ) -> Option<( NaiveTime, NaiveTime )> {
-		for start in &self.start {
-			let stop = *start + self.duration;
-			if time >= *start && time <= stop {
-				return Some( ( *start, stop ) );
-			}
-		}
-		return None;
-	}
-
 	/// Create a new computer schedule from the template.
 	pub fn from_template( template: &str ) -> Self {
 		// TODO: Ensure that the computer is on for at least 2 minutes to allow for enough time for booting and shutting down.
@@ -85,8 +74,24 @@ impl ComputerSchedule {
 		}
 	}
 
-	/// Returns the current load (by the user) of the computer at the specified time.
-	pub fn load( &self, consumer: &Consumer, time: NaiveTime ) -> Result<u32, &str> {
+	/// If the computer is currently on, return the time it was started and will stop. Otherwise return `None`.
+	fn start_stop( &self, time: NaiveTime ) -> Option<( NaiveTime, NaiveTime )> {
+		for start in &self.start {
+			let stop = *start + self.duration;
+			if time >= *start && time <= stop {
+				return Some( ( *start, stop ) );
+			}
+		}
+		return None;
+	}
+
+	/// If the computer is on at the time provided, this returns `true` otherwise `false`.
+	pub fn is_on( &self, time: NaiveTime ) -> bool {
+		return self.start_stop( time ).is_some();
+	}
+
+	/// Returns the current discrete load of the computer at the specified time.
+	fn load_discrete( &self, consumer: &Consumer, time: NaiveTime ) -> Result<u32, &str> {
 		let ( start, stop ) = match self.start_stop( time ) {
 			Some( x ) => x,
 			None => return Ok( 0 )
@@ -121,8 +126,25 @@ impl ComputerSchedule {
 		}
 	}
 
-	/// If the computer is on at the time provided, this returns `true` otherwise `false`.
-	pub fn is_on( &self, time: NaiveTime ) -> bool {
-		return self.start_stop( time ).is_some();
+	/// Returns the current load of the computer at the specified time. This value takes into account, that the load change is not infinitessimal fast but changes over time.
+	pub fn load( &self, consumer: &Consumer, time: NaiveTime ) -> Result<u32, &str> {
+		let current = self.load_discrete( consumer, time )?;
+
+		match self.start_stop( time ) {
+			Some( x ) => {
+				let start = x.0;
+				let prev = i64::from( self.load_discrete( consumer, start - Duration::milliseconds( 1 ) )? );
+				let curr = i64::from( current );
+				let dur = time - start;
+				if dur > Duration::seconds( 0 ) && dur < Duration::seconds( 1 ) {
+					let factor: f64 = dur.num_milliseconds() as f64 / 1000.0;
+					let act: f64 = prev as f64 - ( ( prev - curr ) as f64 * factor );
+					return Ok( act as u32 );
+				} else {
+					return Ok( current );
+				}
+			},
+			None => return Ok( current ),
+		}
 	}
 }

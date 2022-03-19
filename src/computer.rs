@@ -225,15 +225,10 @@ pub fn draw_usage_smooth(
 	cpu_query: Query<&Cpu>,
 ) {
 	let cpu = cpu_query.single();
-	let step = 0.01;
 	let mut transform_prev: Option<Mut<Transform>> = None;
 	for ( mut transform, usage ) in query.iter_mut() {
 		let scale_target = ( usage.load as f32 / cpu.capacity as f32 ) + usage.jitter;
-		if transform.scale.y > scale_target + step {
-			transform.scale.y -= step;
-		} else if transform.scale.y < scale_target - step {
-			transform.scale.y += step;
-		}
+		transform.scale.y = scale_target;
 
 		match transform_prev {
 			Some( v ) => {
