@@ -96,7 +96,7 @@ fn setup(
 
 	// Implement Computer usage schedule.
 	commands.spawn_bundle( (
-		ComputerSchedule::from_template( "Family" ),
+		ComputerSchedule::new(),
 	) );
 }
 

@@ -11,7 +11,7 @@ use bevy::prelude::*;
 
 use crate::materials::CustomColor;
 use crate::schedule::{Clock, ComputerSchedule};
-use crate::computer::{Usage, InstrumentCpu, Consumer, ConsumerPlayer};
+use crate::computer::{Usage, Consumer};
 
 
 
@@ -434,25 +434,25 @@ pub fn change_time_speed_by_button(
 
 
 pub fn change_load_by_button(
-	mut usage_query: Query<&mut Usage, ( With<InstrumentCpu>, With<ConsumerPlayer> )>,
+	mut schedule_query: Query<&mut ComputerSchedule>,
 	mut interaction_query: Query<
 		( &LoadButton, &Interaction ),
 		( Changed<Interaction>, With<Button> )
 	>,
 ) {
-	let mut usage = usage_query.single_mut();
+	let mut schedule = schedule_query.single_mut();
 	for ( button, interaction ) in interaction_query.iter_mut() {
 		match *interaction {
 			Interaction::Clicked => {
 				if button.value < 0 {
 					let val = -button.value as u32;
-					if usage.load < val {
-						usage.load = 0;
+					if schedule.load_player < val {
+						schedule.load_player = 0;
 					} else {
-						usage.load -= -button.value as u32;
+						schedule.load_player -= -button.value as u32;
 					}
 				} else {
-					usage.load += button.value as u32;
+					schedule.load_player += button.value as u32;
 				}
 			},
 			_ => (),

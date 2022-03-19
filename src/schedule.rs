@@ -50,14 +50,14 @@ impl Clock {
 /// The usage schedule of the computer.
 #[derive( Debug, Component )]
 pub struct ComputerSchedule {
-// 	template: String,
 	pub start: Vec<NaiveTime>,
 	pub duration: Duration,
+	pub load_player: u32,
 }
 
 impl ComputerSchedule {
 	/// Create a new computer schedule from the template.
-	pub fn from_template( template: &str ) -> Self {
+	pub fn new() -> Self {
 		// TODO: Ensure that the computer is on for at least 2 minutes to allow for enough time for booting and shutting down.
 		ComputerSchedule {
 			start: vec![
@@ -69,6 +69,7 @@ impl ComputerSchedule {
 				NaiveTime::from_hms( 15, 23, 20 ),
 			],
 			duration: Duration::minutes( 5 ),
+			load_player: 0,
 		}
 	}
 
@@ -120,6 +121,7 @@ impl ComputerSchedule {
 					return Ok( 0 );
 				}
 			},
+			Consumer::Player => return Ok( self.load_player ),
 			_ => return Err( "Consumer not legal" ),
 		}
 	}

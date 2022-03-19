@@ -194,20 +194,23 @@ pub fn update_usage(
 	for mut usage in query.iter_mut() {
 		let load_target = match schedule.load( &usage.consumer, clock.datetime.time() ) {
 			Ok( x ) => x,
-			Err( _ ) => return (),
+			Err( _ ) => 0,
 		};
 
 		if load_target == 0 {
 			usage.load = 0;
 		} else {
 			let diff = i64::from( load_target ) - i64::from( usage.load );
-			let jump = rand::thread_rng().gen_range( 1..40 );
-			if diff > 0 {
-				usage.load += jump;
+			let jump_quick = rand::thread_rng().gen_range( 1..32 );
+			let jump_slow = rand::thread_rng().gen_range( 1..8 );
+			if diff < -8 {
+				usage.load -= cmp::min( jump_quick, usage.load );
 			} else if diff < 0 {
-				usage.load -= cmp::min( jump, usage.load );
+				usage.load -= cmp::min( jump_slow, usage.load );
+			} else if diff > 8 {
+				usage.load += jump_quick;
 			} else {
-				usage.load += rand::thread_rng().gen_range( 1..8 );
+				usage.load += jump_slow;
 			}
 		}
 	}
