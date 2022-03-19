@@ -11,7 +11,17 @@ use bevy::prelude::*;
 
 use crate::materials::CustomColor;
 use crate::schedule::{Clock, ComputerSchedule};
-use crate::computer::{Usage, InstrumentCpu, ConsumerPlayer};
+use crate::computer::{Usage, InstrumentCpu, Consumer, ConsumerPlayer};
+
+
+
+
+//=============================================================================
+// Constants
+
+
+/// The margin magnitude around ui elements.
+const MARGIN: Val = Val::Px( 5.0 );
 
 
 
@@ -46,6 +56,178 @@ pub struct LoadButton {
 }
 
 
+#[derive( Component )]
+pub struct LoadText;
+
+
+
+
+//=============================================================================
+// Displays
+
+
+fn disp_load(
+	builder: &mut ChildBuilder<'_, '_, '_>,
+	asset_server: &Res<AssetServer>,
+	text: &str,
+	component: Consumer,
+) {
+	builder
+		.spawn_bundle( NodeBundle {
+			style: Style {
+				size: Size::new( Val::Auto, Val::Auto ),
+				flex_direction: FlexDirection::Row,
+				justify_content: JustifyContent::SpaceBetween,
+				..Default::default()
+			},
+			color: Color::NONE.into(),
+			..Default::default()
+		} )
+		.with_children( |parent| {
+			parent
+				.spawn_bundle( TextBundle {
+					style: Style {
+						size: Size::new( Val::Undefined, Val::Px( 20.0 ) ),
+						..Default::default()
+					},
+					text: Text::with_section(
+						text,
+						TextStyle {
+							font: asset_server.load( "fonts/Orbitron/Orbitron-Regular.ttf" ),
+							font_size: 20.0,
+							color: Color::WHITE,
+						},
+						TextAlignment {
+							horizontal: HorizontalAlign::Left,
+							..Default::default()
+						},
+					),
+					..Default::default()
+				} );
+
+			parent
+				.spawn_bundle( TextBundle {
+					style: Style {
+						size: Size::new( Val::Undefined, Val::Px( 20.0 ) ),
+						..Default::default()
+					},
+					text: Text::with_section(
+						"0.0",
+						TextStyle {
+							font: asset_server.load( "fonts/Orbitron/Orbitron-Regular.ttf" ),
+							font_size: 20.0,
+							color: Color::WHITE,
+						},
+						TextAlignment {
+							horizontal: HorizontalAlign::Right,
+							..Default::default()
+						},
+					),
+					..Default::default()
+				} )
+				.insert( LoadText )
+				.insert( component );
+		} );
+}
+
+
+
+
+//=============================================================================
+// Buttons
+
+
+fn button_load(
+	builder: &mut ChildBuilder<'_, '_, '_>,
+	asset_server: &Res<AssetServer>,
+	load: i32,
+) {
+	let load_text = if load < -10 {
+		"Load −−"
+	} else if load < 0 {
+		"Load −"
+	} else if load > 10 {
+		"Load ++"
+	} else {
+		"Load +"
+	};
+
+	builder
+		.spawn_bundle( ButtonBundle {
+			style: Style {
+				size: Size::new( Val::Auto, Val::Px( 50.0 ) ),
+				margin: Rect::all( MARGIN ),
+				justify_content: JustifyContent::Center,
+				align_items: AlignItems::Center,
+				..Default::default()
+			},
+			color: UiColor::from( CustomColor::NORMAL ),
+			..Default::default()
+		} )
+		.insert( Widget {
+			disabled: false,
+		} )
+		.insert( ComputerInteraction )
+		.insert( LoadButton {
+			value: load,
+		} )
+		.with_children( |parent| {
+			parent.spawn_bundle( TextBundle {
+				text: Text::with_section(
+					load_text,
+					TextStyle {
+						font: asset_server.load( "fonts/Orbitron/Orbitron-Regular.ttf" ),
+						font_size: 20.0,
+						color: Color::rgb( 0.9, 0.9, 0.9 ),
+					},
+					Default::default(),
+				),
+				..Default::default()
+			} );
+		} );
+}
+
+
+fn button_multiplier(
+	builder: &mut ChildBuilder<'_, '_, '_>,
+	asset_server: &Res<AssetServer>,
+	multiplier: f32,
+) {
+	builder
+		.spawn_bundle( ButtonBundle {
+			style: Style {
+				size: Size::new( Val::Percent( 25.0 ), Val::Px( 50.0 ) ),
+				margin: Rect::all( MARGIN ),
+				justify_content: JustifyContent::Center,
+				align_items: AlignItems::Center,
+				..Default::default()
+			},
+			color: UiColor::from( CustomColor::NORMAL ),
+			..Default::default()
+		} )
+		.insert( Widget {
+			disabled: false,
+		} )
+		.insert( SpeedButton {
+			multiplier: multiplier,
+		} )
+		.with_children( |parent| {
+			parent.spawn_bundle( TextBundle {
+				text: Text::with_section(
+					format!( "×{}", multiplier.to_string() ),
+					TextStyle {
+						font: asset_server.load( "fonts/Orbitron/Orbitron-Regular.ttf" ),
+						font_size: 20.0,
+						color: Color::rgb( 0.9, 0.9, 0.9 ),
+					},
+					Default::default(),
+				),
+				..Default::default()
+			} );
+		} );
+}
+
+
 
 
 //=============================================================================
@@ -56,273 +238,128 @@ pub fn spawn_ui(
 	mut commands: Commands,
 	asset_server: Res<AssetServer>,
 ) {
-	// Clock
+	// Root node
 	commands
-		.spawn_bundle( TextBundle {
+		.spawn_bundle( NodeBundle {
 			style: Style {
-				size: Size::new( Val::Px( 240.0 ), Val::Px( 10.0 ) ),
-				align_self: AlignSelf::FlexEnd,
-				position_type: PositionType::Absolute,
-				position: Rect {
-					top: Val::Px( 15.0 ),
-					right: Val::Px( 15.0 ),
-					..Default::default()
-				},
+				size: Size::new( Val::Percent( 100.0 ), Val::Percent( 100.0 ) ),
+				padding: Rect::all( MARGIN ),
+				justify_content: JustifyContent::SpaceBetween,
 				..Default::default()
 			},
-			text: Text::with_section(
-				"YYYY-MM-DD hh:mm:ss.µµµ",
-				TextStyle {
-					font: asset_server.load( "fonts/Orbitron/Orbitron-Regular.ttf" ),
-					font_size: 20.0,
-					color: Color::WHITE,
-				},
-				TextAlignment {
-					horizontal: HorizontalAlign::Left,
-					..Default::default()
-				},
-			),
+			color: Color::NONE.into(),
 			..Default::default()
 		} )
-		.insert( ClockWidget );
+		.with_children( |parent| {
+			// The left button column (controlling computer)
+			parent
+				.spawn_bundle( NodeBundle {
+					style: Style {
+						size: Size::new( Val::Px( 200.0 ), Val::Auto ),
+						flex_direction: FlexDirection::ColumnReverse,
+						justify_content: JustifyContent::SpaceBetween,
+						..Default::default()
+					},
+					color: Color::NONE.into(),
+					..Default::default()
+				} )
+				.with_children( |parent| {
+					// Buttons to control the load the player is allocating.
+					parent
+						.spawn_bundle( NodeBundle {
+							style: Style {
+								size: Size::new( Val::Auto, Val::Auto ),
+								flex_direction: FlexDirection::ColumnReverse,
+// 								justify_content: JustifyContent::FlexStart,
+								..Default::default()
+							},
+							color: Color::NONE.into(),
+							..Default::default()
+						} )
+						.with_children( |parent| {
+							button_load( parent, &asset_server, 100 );
+							button_load( parent, &asset_server, 10 );
+							button_load( parent, &asset_server, -10 );
+							button_load( parent, &asset_server, -100 );
+						} );
 
-	// Buttons to control the in-game time.
-	commands
-		.spawn_bundle( ButtonBundle {
-			style: Style {
-				size: Size::new( Val::Px( 50.0 ), Val::Px( 50.0 ) ),
-				// The button is centerd
-				margin: Rect::all( Val::Auto ),
-				justify_content: JustifyContent::Center,
-				align_items: AlignItems::Center,
-				position_type: PositionType::Absolute,
-				position: Rect {
-					top: Val::Px( 40.0 ),
-					right: Val::Px( 180.0 ),
-					..Default::default()
-				},
-				..Default::default()
-			},
-			color: UiColor::from( CustomColor::NORMAL ),
-			..Default::default()
-		} )
-		.insert( Widget {
-			disabled: false,
-		} )
-		.insert( SpeedButton {
-			multiplier: 1.0,
-		} )
-		.with_children( |parent| {
-			parent.spawn_bundle( TextBundle {
-				text: Text::with_section(
-					"×1",
-					TextStyle {
-						font: asset_server.load( "fonts/Orbitron/Orbitron-Regular.ttf" ),
-						font_size: 20.0,
-						color: Color::rgb( 0.9, 0.9, 0.9 ),
-					},
-					Default::default(),
-				),
-				..Default::default()
-			} );
-		} );
-	commands
-		.spawn_bundle( ButtonBundle {
-			style: Style {
-				size: Size::new( Val::Px( 50.0 ), Val::Px( 50.0 ) ),
-				// The button is centerd
-				margin: Rect::all( Val::Auto ),
-				justify_content: JustifyContent::Center,
-				align_items: AlignItems::Center,
-				position_type: PositionType::Absolute,
-				position: Rect {
-					top: Val::Px( 40.0 ),
-					right: Val::Px( 125.0 ),
-					..Default::default()
-				},
-				..Default::default()
-			},
-			color: UiColor::from( CustomColor::NORMAL ),
-			..Default::default()
-		} )
-		.insert( Widget {
-			disabled: false,
-		} )
-		.insert( SpeedButton {
-			multiplier: 16.0,
-		} )
-		.with_children( |parent| {
-			parent.spawn_bundle(TextBundle {
-				text: Text::with_section(
-					"×16",
-					TextStyle {
-						font: asset_server.load( "fonts/Orbitron/Orbitron-Regular.ttf" ),
-						font_size: 20.0,
-						color: Color::rgb( 0.9, 0.9, 0.9 ),
-					},
-					Default::default(),
-				),
-				..Default::default()
-			} );
-		} );
-	commands
-		.spawn_bundle( ButtonBundle {
-			style: Style {
-				size: Size::new( Val::Px( 50.0 ), Val::Px( 50.0 ) ),
-				// The button is centerd
-				margin: Rect::all( Val::Auto ),
-				justify_content: JustifyContent::Center,
-				align_items: AlignItems::Center,
-				position_type: PositionType::Absolute,
-				position: Rect {
-					top: Val::Px( 40.0 ),
-					right: Val::Px( 70.0 ),
-					..Default::default()
-				},
-				..Default::default()
-			},
-			color: UiColor::from( CustomColor::NORMAL ),
-			..Default::default()
-		} )
-		.insert( Widget {
-			disabled: false,
-		} )
-		.insert( SpeedButton {
-			multiplier: 128.0,
-		} )
-		.with_children( |parent| {
-			parent.spawn_bundle(TextBundle {
-				text: Text::with_section(
-					"×128",
-					TextStyle {
-						font: asset_server.load( "fonts/Orbitron/Orbitron-Regular.ttf" ),
-						font_size: 20.0,
-						color: Color::rgb( 0.9, 0.9, 0.9 ),
-					},
-					Default::default(),
-				),
-				..Default::default()
-			} );
-		} );
-	commands
-		.spawn_bundle( ButtonBundle {
-			style: Style {
-				size: Size::new( Val::Px( 50.0 ), Val::Px( 50.0 ) ),
-				// The button is centerd
-				margin: Rect::all( Val::Auto ),
-				justify_content: JustifyContent::Center,
-				align_items: AlignItems::Center,
-				position_type: PositionType::Absolute,
-				position: Rect {
-					top: Val::Px( 40.0 ),
-					right: Val::Px( 15.0 ),
-					..Default::default()
-				},
-				..Default::default()
-			},
-			color: UiColor::from( CustomColor::NORMAL ),
-			..Default::default()
-		} )
-		.insert( Widget {
-			disabled: false,
-		} )
-		.insert( SpeedButton {
-			multiplier: 1024.0,
-		} )
-		.with_children( |parent| {
-			parent.spawn_bundle(TextBundle {
-				text: Text::with_section(
-					"×1024",
-					TextStyle {
-						font: asset_server.load( "fonts/Orbitron/Orbitron-Regular.ttf" ),
-						font_size: 20.0,
-						color: Color::rgb( 0.9, 0.9, 0.9 ),
-					},
-					Default::default(),
-				),
-				..Default::default()
-			} );
-		} );
+					// Status information about the computer.
+					parent
+						.spawn_bundle( NodeBundle {
+							style: Style {
+								size: Size::new( Val::Auto, Val::Auto ),
+								flex_direction: FlexDirection::ColumnReverse,
+// 								justify_content: JustifyContent::FlexStart,
+								..Default::default()
+							},
+							color: Color::NONE.into(),
+							..Default::default()
+						} )
+						.with_children( |parent| {
+							disp_load( parent, &asset_server, "System", Consumer::System );
+							disp_load( parent, &asset_server, "User", Consumer::User );
+							disp_load( parent, &asset_server, "Player", Consumer::Player );
+							disp_load( parent, &asset_server, "Enemy", Consumer::Enemy );
+						} );
+				} );
 
+			// The right button column (controlling time)
+			parent
+				.spawn_bundle( NodeBundle {
+					style: Style {
+						size: Size::new( Val::Px( 250.0 ), Val::Percent( 100.0 ) ),
+// 						padding: Rect::all( MARGIN ),
+						flex_direction: FlexDirection::ColumnReverse,
+						align_items: AlignItems::FlexStart,
+						..Default::default()
+					},
+					color: Color::NONE.into(),
+					..Default::default()
+				} )
+				.with_children( |parent| {
+					// Clock
+					parent
+						.spawn_bundle( TextBundle {
+							style: Style {
+								size: Size::new( Val::Percent( 100.0 ), Val::Px( 20.0 ) ),
+								..Default::default()
+							},
+							text: Text::with_section(
+								"YYYY-MM-DD hh:mm:ss.µµµ",
+								TextStyle {
+									font: asset_server.load( "fonts/Orbitron/Orbitron-Regular.ttf" ),
+									font_size: 20.0,
+									color: Color::WHITE,
+								},
+								TextAlignment {
+									horizontal: HorizontalAlign::Left,
+									..Default::default()
+								},
+							),
+							..Default::default()
+						} )
+						.insert( ClockWidget );
 
-	// Buttons to control the load the player is allocating.
-	commands
-		.spawn_bundle( ButtonBundle {
-			style: Style {
-				size: Size::new( Val::Px( 150.0 ), Val::Px( 50.0 ) ),
-				margin: Rect::all( Val::Auto ),
-				justify_content: JustifyContent::Center,
-				align_items: AlignItems::Center,
-				position_type: PositionType::Absolute,
-				position: Rect {
-					top: Val::Px( 10.0 ),
-					left: Val::Px( 10.0 ),
-					..Default::default()
-				},
-				..Default::default()
-			},
-			color: UiColor::from( CustomColor::NORMAL ),
-			..Default::default()
-		} )
-		.insert( Widget {
-			disabled: false,
-		} )
-		.insert( ComputerInteraction )
-		.insert( LoadButton {
-			value: 10,
-		} )
-		.with_children( |parent| {
-			parent.spawn_bundle( TextBundle {
-				text: Text::with_section(
-					"Load +",
-					TextStyle {
-						font: asset_server.load( "fonts/Orbitron/Orbitron-Regular.ttf" ),
-						font_size: 20.0,
-						color: Color::rgb( 0.9, 0.9, 0.9 ),
-					},
-					Default::default(),
-				),
-				..Default::default()
-			} );
-		} );
-	commands
-		.spawn_bundle( ButtonBundle {
-			style: Style {
-				size: Size::new( Val::Px( 150.0 ), Val::Px( 50.0 ) ),
-				margin: Rect::all( Val::Auto ),
-				justify_content: JustifyContent::Center,
-				align_items: AlignItems::Center,
-				position_type: PositionType::Absolute,
-				position: Rect {
-					top: Val::Px( 60.0 ),
-					left: Val::Px( 10.0 ),
-					..Default::default()
-				},
-				..Default::default()
-			},
-			color: UiColor::from( CustomColor::NORMAL ),
-			..Default::default()
-		} )
-		.insert( Widget {
-			disabled: false,
-		} )
-		.insert( ComputerInteraction )
-		.insert( LoadButton {
-			value: -10,
-		} )
-		.with_children( |parent| {
-			parent.spawn_bundle( TextBundle {
-				text: Text::with_section(
-					"Load -",
-					TextStyle {
-						font: asset_server.load( "fonts/Orbitron/Orbitron-Regular.ttf" ),
-						font_size: 20.0,
-						color: Color::rgb( 0.9, 0.9, 0.9 ),
-					},
-					Default::default(),
-				),
-				..Default::default()
-			} );
+					// Button row
+					parent
+						.spawn_bundle( NodeBundle {
+							style: Style {
+								size: Size::new( Val::Percent( 100.0 ), Val::Undefined ),
+								flex_direction: FlexDirection::Row,
+								justify_content: JustifyContent::SpaceBetween,
+								..Default::default()
+							},
+							color: Color::NONE.into(),
+							..Default::default()
+						} )
+						.with_children( |parent| {
+							// Buttons to control the in-game time.
+							button_multiplier( parent, &asset_server, 1.0 );
+							button_multiplier( parent, &asset_server, 16.0 );
+							button_multiplier( parent, &asset_server, 128.0 );
+							button_multiplier( parent, &asset_server, 1024.0 );
+						} );
+				} );
 		} );
 }
 
@@ -419,6 +456,20 @@ pub fn change_load_by_button(
 				}
 			},
 			_ => (),
+		}
+	}
+}
+
+
+pub fn display_load(
+	mut query: Query<( &mut Text, &Consumer ), With<LoadText>>,
+	usage_query: Query<&Usage>,
+) {
+	for usage in usage_query.iter() {
+		for ( mut text, consumer ) in query.iter_mut() {
+			if &usage.consumer == consumer {
+				text.sections[0].value = usage.load.to_string();
+			}
 		}
 	}
 }
