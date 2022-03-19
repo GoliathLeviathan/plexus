@@ -37,7 +37,7 @@ const USAGE_BAR_SIZE: [f32; 2] = [ CPU_SIZE[0] - MARGIN, CPU_SIZE[1] - MARGIN ];
 // Enums
 
 
-#[derive( Debug )]
+#[derive( Debug, PartialEq, Component )]
 pub enum Consumer {
 	System,
 	User,
@@ -69,7 +69,7 @@ pub struct InstrumentCpu;
 #[derive( Debug, Component )]
 pub struct Usage {
 	/// The type of the consumer having this usage.
-	consumer: Consumer,
+	pub consumer: Consumer,
 
 	/// The load between 0 (no load at all) and 1 (full load).
 	pub load: u32,
@@ -189,7 +189,7 @@ pub fn spawn_cpu(
 
 /// Update the computer usage.
 pub fn update_usage(
-	mut query: Query<&mut Usage, With<StatusBar>>,
+	mut query: Query<&mut Usage>,
 	clock_query: Query<&Clock>,
 	schedule_query: Query<&ComputerSchedule>
 ) {

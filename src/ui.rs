@@ -11,7 +11,7 @@ use bevy::prelude::*;
 
 use crate::materials::CustomColor;
 use crate::schedule::{Clock, ComputerSchedule};
-use crate::computer::{Usage, InstrumentCpu, ConsumerPlayer};
+use crate::computer::{Usage, InstrumentCpu, Consumer, ConsumerPlayer};
 
 
 
@@ -53,6 +53,81 @@ pub struct SpeedButton {
 #[derive( Component )]
 pub struct LoadButton {
 	value: i32,
+}
+
+
+#[derive( Component )]
+pub struct LoadText;
+
+
+
+
+//=============================================================================
+// Displays
+
+
+fn disp_load(
+	builder: &mut ChildBuilder<'_, '_, '_>,
+	asset_server: &Res<AssetServer>,
+	text: &str,
+	component: Consumer,
+) {
+	builder
+		.spawn_bundle( NodeBundle {
+			style: Style {
+				size: Size::new( Val::Auto, Val::Auto ),
+				flex_direction: FlexDirection::Row,
+				justify_content: JustifyContent::SpaceBetween,
+				..Default::default()
+			},
+			color: Color::NONE.into(),
+			..Default::default()
+		} )
+		.with_children( |parent| {
+			parent
+				.spawn_bundle( TextBundle {
+					style: Style {
+						size: Size::new( Val::Undefined, Val::Px( 20.0 ) ),
+						..Default::default()
+					},
+					text: Text::with_section(
+						text,
+						TextStyle {
+							font: asset_server.load( "fonts/Orbitron/Orbitron-Regular.ttf" ),
+							font_size: 20.0,
+							color: Color::WHITE,
+						},
+						TextAlignment {
+							horizontal: HorizontalAlign::Left,
+							..Default::default()
+						},
+					),
+					..Default::default()
+				} );
+
+			parent
+				.spawn_bundle( TextBundle {
+					style: Style {
+						size: Size::new( Val::Undefined, Val::Px( 20.0 ) ),
+						..Default::default()
+					},
+					text: Text::with_section(
+						"0.0",
+						TextStyle {
+							font: asset_server.load( "fonts/Orbitron/Orbitron-Regular.ttf" ),
+							font_size: 20.0,
+							color: Color::WHITE,
+						},
+						TextAlignment {
+							horizontal: HorizontalAlign::Right,
+							..Default::default()
+						},
+					),
+					..Default::default()
+				} )
+				.insert( LoadText )
+				.insert( component );
+		} );
 }
 
 
@@ -182,7 +257,7 @@ pub fn spawn_ui(
 					style: Style {
 						size: Size::new( Val::Px( 200.0 ), Val::Auto ),
 						flex_direction: FlexDirection::ColumnReverse,
-						justify_content: JustifyContent::FlexStart,
+						justify_content: JustifyContent::SpaceBetween,
 						..Default::default()
 					},
 					color: Color::NONE.into(),
@@ -190,10 +265,42 @@ pub fn spawn_ui(
 				} )
 				.with_children( |parent| {
 					// Buttons to control the load the player is allocating.
-					button_load( parent, &asset_server, 100 );
-					button_load( parent, &asset_server, 10 );
-					button_load( parent, &asset_server, -10 );
-					button_load( parent, &asset_server, -100 );
+					parent
+						.spawn_bundle( NodeBundle {
+							style: Style {
+								size: Size::new( Val::Auto, Val::Auto ),
+								flex_direction: FlexDirection::ColumnReverse,
+// 								justify_content: JustifyContent::FlexStart,
+								..Default::default()
+							},
+							color: Color::NONE.into(),
+							..Default::default()
+						} )
+						.with_children( |parent| {
+							button_load( parent, &asset_server, 100 );
+							button_load( parent, &asset_server, 10 );
+							button_load( parent, &asset_server, -10 );
+							button_load( parent, &asset_server, -100 );
+						} );
+
+					// Status information about the computer.
+					parent
+						.spawn_bundle( NodeBundle {
+							style: Style {
+								size: Size::new( Val::Auto, Val::Auto ),
+								flex_direction: FlexDirection::ColumnReverse,
+// 								justify_content: JustifyContent::FlexStart,
+								..Default::default()
+							},
+							color: Color::NONE.into(),
+							..Default::default()
+						} )
+						.with_children( |parent| {
+							disp_load( parent, &asset_server, "System", Consumer::System );
+							disp_load( parent, &asset_server, "User", Consumer::User );
+							disp_load( parent, &asset_server, "Player", Consumer::Player );
+							disp_load( parent, &asset_server, "Enemy", Consumer::Enemy );
+						} );
 				} );
 
 			// The right button column (controlling time)
@@ -349,6 +456,20 @@ pub fn change_load_by_button(
 				}
 			},
 			_ => (),
+		}
+	}
+}
+
+
+pub fn display_load(
+	mut query: Query<( &mut Text, &Consumer ), With<LoadText>>,
+	usage_query: Query<&Usage>,
+) {
+	for usage in usage_query.iter() {
+		for ( mut text, consumer ) in query.iter_mut() {
+			if &usage.consumer == consumer {
+				text.sections[0].value = usage.load.to_string();
+			}
 		}
 	}
 }
