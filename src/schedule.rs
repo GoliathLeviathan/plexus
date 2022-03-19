@@ -53,7 +53,6 @@ pub struct ComputerSchedule {
 // 	template: String,
 	pub start: Vec<NaiveTime>,
 	pub duration: Duration,
-	pub load: u32,
 }
 
 impl ComputerSchedule {
@@ -62,7 +61,7 @@ impl ComputerSchedule {
 		// TODO: Ensure that the computer is on for at least 2 minutes to allow for enough time for booting and shutting down.
 		ComputerSchedule {
 			start: vec![
-				NaiveTime::from_hms( 14, 32, 30 ),
+				NaiveTime::from_hms( 14, 32, 05 ),
 				NaiveTime::from_hms( 14, 42, 40 ),
 				NaiveTime::from_hms( 14, 52, 50 ),
 				NaiveTime::from_hms( 15, 03, 00 ),
@@ -70,7 +69,6 @@ impl ComputerSchedule {
 				NaiveTime::from_hms( 15, 23, 20 ),
 			],
 			duration: Duration::minutes( 5 ),
-			load: 500,
 		}
 	}
 
@@ -91,7 +89,7 @@ impl ComputerSchedule {
 	}
 
 	/// Returns the current discrete load of the computer at the specified time.
-	fn load_discrete( &self, consumer: &Consumer, time: NaiveTime ) -> Result<u32, &str> {
+	pub fn load( &self, consumer: &Consumer, time: NaiveTime ) -> Result<u32, &str> {
 		let ( start, stop ) = match self.start_stop( time ) {
 			Some( x ) => x,
 			None => return Ok( 0 )
@@ -100,13 +98,13 @@ impl ComputerSchedule {
 		match consumer {
 			Consumer::System => {
 				// The system needs some time to boot up. During this time the system load is high and gets lower at the end.
-				if time < start + Duration::seconds( 45 ) {
+				if time < start + Duration::seconds( 10 ) {
 					// First part of the booting process.
 					return Ok( 900 );
-				} else if time < start + Duration::seconds( 90 ) {
+				} else if time < start + Duration::seconds( 10 ) {
 					// Second part of the booting process.
 					return Ok( 750 );
-				} else if time > stop - Duration::seconds( 30 ) {
+				} else if time > stop - Duration::seconds( 10 ) {
 					// Shutting down.
 					return Ok( 750 );
 				} else {
@@ -116,35 +114,13 @@ impl ComputerSchedule {
 			},
 			Consumer::User => {
 				// Only after the boot time is done, the user is taking its load. Near the end of the usage time, the user has almost no load.
-				if time >= start + Duration::seconds( 90 ) && time <= stop - Duration::seconds( 30 ) {
-					return Ok( self.load );
+				if time >= start + Duration::seconds( 20 ) && time <= stop - Duration::seconds( 30 ) {
+					return Ok( 500 );
 				} else {
 					return Ok( 0 );
 				}
 			},
 			_ => return Err( "Consumer not legal" ),
-		}
-	}
-
-	/// Returns the current load of the computer at the specified time. This value takes into account, that the load change is not infinitessimal fast but changes over time.
-	pub fn load( &self, consumer: &Consumer, time: NaiveTime ) -> Result<u32, &str> {
-		let current = self.load_discrete( consumer, time )?;
-
-		match self.start_stop( time ) {
-			Some( x ) => {
-				let start = x.0;
-				let prev = i64::from( self.load_discrete( consumer, start - Duration::milliseconds( 1 ) )? );
-				let curr = i64::from( current );
-				let dur = time - start;
-				if dur > Duration::seconds( 0 ) && dur < Duration::seconds( 1 ) {
-					let factor: f64 = dur.num_milliseconds() as f64 / 1000.0;
-					let act: f64 = prev as f64 - ( ( prev - curr ) as f64 * factor );
-					return Ok( act as u32 );
-				} else {
-					return Ok( current );
-				}
-			},
-			None => return Ok( current ),
 		}
 	}
 }

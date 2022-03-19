@@ -7,6 +7,9 @@
 // Crates
 
 
+use std::cmp;
+
+use rand::Rng;
 use bevy::prelude::*;
 
 use crate::materials::CustomColor;
@@ -73,9 +76,6 @@ pub struct Usage {
 
 	/// The load between 0 (no load at all) and 1 (full load).
 	pub load: u32,
-
-	/// The amount of jitter of the usage. The higher the number the more the value jitters.
-	jitter: f32,
 }
 
 
@@ -129,7 +129,6 @@ pub fn spawn_cpu(
 				.insert( Usage{
 					consumer: Consumer::System,
 					load: 0,
-					jitter: 0.0,
 				} );
 			parent
 				.spawn_bundle( SpriteBundle {
@@ -146,7 +145,6 @@ pub fn spawn_cpu(
 				.insert( Usage{
 					consumer: Consumer::User,
 					load: 0,
-					jitter: 0.0,
 				} );
 			parent
 				.spawn_bundle( SpriteBundle {
@@ -163,7 +161,6 @@ pub fn spawn_cpu(
 				.insert( Usage{
 					consumer: Consumer::Enemy,
 					load: 0,
-					jitter: 0.0,
 				} );
 			parent
 				.spawn_bundle( SpriteBundle {
@@ -180,7 +177,6 @@ pub fn spawn_cpu(
 				.insert( Usage{
 					consumer: Consumer::Player,
 					load: 0,
-					jitter: 0.0,
 				} )
 				.insert( ConsumerPlayer );
 		} );
@@ -196,38 +192,37 @@ pub fn update_usage(
 	let clock = clock_query.single();
 	let schedule = schedule_query.single();
 	for mut usage in query.iter_mut() {
-		let load = schedule.load( &usage.consumer, clock.datetime.time() );
-		match load {
-			Ok( x ) => usage.load = x,
+		let load_target = match schedule.load( &usage.consumer, clock.datetime.time() ) {
+			Ok( x ) => x,
 			Err( _ ) => return (),
-		}
-	}
-}
+		};
 
-
-/// Introduce a slight jitter on all usage displays.
-pub fn jitter_usage(
-	mut query: Query<&mut Usage, With<InstrumentCpu>>
-) {
-	for mut usage in query.iter_mut() {
-		if usage.load > 0 {
-			usage.jitter = 0.04 * rand::random::<f32>() - 0.02;
+		if load_target == 0 {
+			usage.load = 0;
 		} else {
-			usage.jitter = 0.0;
+			let diff = i64::from( load_target ) - i64::from( usage.load );
+			let jump = rand::thread_rng().gen_range( 1..40 );
+			if diff > 0 {
+				usage.load += jump;
+			} else if diff < 0 {
+				usage.load -= cmp::min( jump, usage.load );
+			} else {
+				usage.load += rand::thread_rng().gen_range( 1..8 );
+			}
 		}
 	}
 }
 
 
 /// Update the usage display. This moves the current usage value slowly to the target usage value so that the change is smooth and is not jumping around.
-pub fn draw_usage_smooth(
+pub fn draw_usage(
 	mut query: Query<( &mut Transform, &Usage ), With<InstrumentCpu>>,
 	cpu_query: Query<&Cpu>,
 ) {
 	let cpu = cpu_query.single();
 	let mut transform_prev: Option<Mut<Transform>> = None;
 	for ( mut transform, usage ) in query.iter_mut() {
-		let scale_target = ( usage.load as f32 / cpu.capacity as f32 ) + usage.jitter;
+		let scale_target = usage.load as f32 / cpu.capacity as f32;
 		transform.scale.y = scale_target;
 
 		match transform_prev {

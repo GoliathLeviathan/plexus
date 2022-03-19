@@ -51,18 +51,17 @@ impl Plugin for ComputerPlugin {
 			.add_startup_system( computer::spawn_cpu.system() )
 			.add_system( bevy::input::system::exit_on_esc_system.system() )
 			.add_system( update_clock.system() )
-			.add_system_set(
-				SystemSet::new()
-					.with_run_criteria( FixedTimestep::step( 0.1 ) )
-					.with_system( computer::jitter_usage.system() ),
-			)
 			.add_system( ui::ui_disable.system() )
 			.add_system( ui::ui_interact.system() )
 			.add_system( ui::change_time_speed_by_button.system() )
 			.add_system( ui::change_load_by_button.system() )
 			.add_system( ui::display_load.system() )
-			.add_system( computer::update_usage.system() )
-			.add_system( computer::draw_usage_smooth.system() );
+			.add_system_set(
+				SystemSet::new()
+					.with_run_criteria( FixedTimestep::step( 0.1 ) )
+					.with_system( computer::update_usage ),
+			)
+			.add_system( computer::draw_usage );
 	}
 }
 
