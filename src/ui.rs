@@ -62,6 +62,57 @@ pub struct LoadButton {
 // Buttons
 
 
+fn button_load(
+	builder: &mut ChildBuilder<'_, '_, '_>,
+	asset_server: &Res<AssetServer>,
+	load: i32,
+) {
+	let load_text = if load < -10 {
+		"Load −−"
+	} else if load < 0 {
+		"Load −"
+	} else if load > 10 {
+		"Load ++"
+	} else {
+		"Load +"
+	};
+
+	builder
+		.spawn_bundle( ButtonBundle {
+			style: Style {
+				size: Size::new( Val::Auto, Val::Px( 50.0 ) ),
+				margin: Rect::all( MARGIN ),
+				justify_content: JustifyContent::Center,
+				align_items: AlignItems::Center,
+				..Default::default()
+			},
+			color: UiColor::from( CustomColor::NORMAL ),
+			..Default::default()
+		} )
+		.insert( Widget {
+			disabled: false,
+		} )
+		.insert( ComputerInteraction )
+		.insert( LoadButton {
+			value: load,
+		} )
+		.with_children( |parent| {
+			parent.spawn_bundle( TextBundle {
+				text: Text::with_section(
+					load_text,
+					TextStyle {
+						font: asset_server.load( "fonts/Orbitron/Orbitron-Regular.ttf" ),
+						font_size: 20.0,
+						color: Color::rgb( 0.9, 0.9, 0.9 ),
+					},
+					Default::default(),
+				),
+				..Default::default()
+			} );
+		} );
+}
+
+
 fn button_multiplier(
 	builder: &mut ChildBuilder<'_, '_, '_>,
 	asset_server: &Res<AssetServer>,
@@ -139,73 +190,10 @@ pub fn spawn_ui(
 				} )
 				.with_children( |parent| {
 					// Buttons to control the load the player is allocating.
-					parent
-						.spawn_bundle( ButtonBundle {
-							style: Style {
-								size: Size::new( Val::Auto, Val::Px( 50.0 ) ),
-								margin: Rect::all( MARGIN ),
-								justify_content: JustifyContent::Center,
-								align_items: AlignItems::Center,
-								..Default::default()
-							},
-							color: UiColor::from( CustomColor::NORMAL ),
-							..Default::default()
-						} )
-						.insert( Widget {
-							disabled: false,
-						} )
-						.insert( ComputerInteraction )
-						.insert( LoadButton {
-							value: 10,
-						} )
-						.with_children( |parent| {
-							parent.spawn_bundle( TextBundle {
-								text: Text::with_section(
-									"Load +",
-									TextStyle {
-										font: asset_server.load( "fonts/Orbitron/Orbitron-Regular.ttf" ),
-										font_size: 20.0,
-										color: Color::rgb( 0.9, 0.9, 0.9 ),
-									},
-									Default::default(),
-								),
-								..Default::default()
-							} );
-						} );
-
-					parent
-						.spawn_bundle( ButtonBundle {
-							style: Style {
-								size: Size::new( Val::Auto, Val::Px( 50.0 ) ),
-								margin: Rect::all( MARGIN ),
-								justify_content: JustifyContent::Center,
-								align_items: AlignItems::Center,
-								..Default::default()
-							},
-							color: UiColor::from( CustomColor::NORMAL ),
-							..Default::default()
-						} )
-						.insert( Widget {
-							disabled: false,
-						} )
-						.insert( ComputerInteraction )
-						.insert( LoadButton {
-							value: -10,
-						} )
-						.with_children( |parent| {
-							parent.spawn_bundle( TextBundle {
-								text: Text::with_section(
-									"Load -",
-									TextStyle {
-										font: asset_server.load( "fonts/Orbitron/Orbitron-Regular.ttf" ),
-										font_size: 20.0,
-										color: Color::rgb( 0.9, 0.9, 0.9 ),
-									},
-									Default::default(),
-								),
-								..Default::default()
-							} );
-						} );
+					button_load( parent, &asset_server, 100 );
+					button_load( parent, &asset_server, 10 );
+					button_load( parent, &asset_server, -10 );
+					button_load( parent, &asset_server, -100 );
 				} );
 
 			// The right button column (controlling time)
