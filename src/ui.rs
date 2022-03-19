@@ -436,12 +436,15 @@ pub fn change_time_speed_by_button(
 pub fn change_load_by_button(
 	mut schedule_query: Query<&mut ComputerSchedule>,
 	mut interaction_query: Query<
-		( &LoadButton, &Interaction ),
+		( &LoadButton, &Interaction, &Widget ),
 		( Changed<Interaction>, With<Button> )
 	>,
 ) {
 	let mut schedule = schedule_query.single_mut();
-	for ( button, interaction ) in interaction_query.iter_mut() {
+	for ( button, interaction, widget ) in interaction_query.iter_mut() {
+		if widget.disabled {
+			continue;
+		}
 		match *interaction {
 			Interaction::Clicked => {
 				if button.value < 0 {
