@@ -10,7 +10,7 @@
 use bevy::prelude::*;
 
 use crate::materials::CustomColor;
-use crate::schedule::{Clock, ComputerSchedule};
+use crate::schedule::{Clock, Hardware, ComputerSchedule};
 use crate::computer::{Usage, Consumer};
 
 
@@ -434,29 +434,22 @@ pub fn change_time_speed_by_button(
 
 
 pub fn change_load_by_button(
-	mut schedule_query: Query<&mut ComputerSchedule>,
+	mut hw_query: Query<&mut Hardware>,
 	mut interaction_query: Query<
 		( &LoadButton, &Interaction, &Widget ),
 		( Changed<Interaction>, With<Button> )
 	>,
 ) {
-	let mut schedule = schedule_query.single_mut();
+	let mut hardware = hw_query.single_mut();
 	for ( button, interaction, widget ) in interaction_query.iter_mut() {
 		if widget.disabled {
 			continue;
 		}
 		match *interaction {
 			Interaction::Clicked => {
-				if button.value < 0 {
-					let val = -button.value as u32;
-					if schedule.load_player < val {
-						schedule.load_player = 0;
-					} else {
-						schedule.load_player -= -button.value as u32;
-					}
-				} else {
-					schedule.load_player += button.value as u32;
-				}
+				let mut load = *hardware.load.get( &Consumer::Player ).unwrap() as i32;
+				load += i32::max( button.value, 0 );
+				hardware.load.insert( Consumer::Player.clone(), load as u32 );
 			},
 			_ => (),
 		}
@@ -467,11 +460,13 @@ pub fn change_load_by_button(
 pub fn display_load(
 	mut query: Query<( &mut Text, &Consumer ), With<LoadText>>,
 	usage_query: Query<&Usage>,
+	hw_query: Query<&Hardware>,
 ) {
+	let hardware = hw_query.single();
 	for usage in usage_query.iter() {
 		for ( mut text, consumer ) in query.iter_mut() {
 			if &usage.consumer == consumer {
-				text.sections[0].value = usage.load.to_string();
+				text.sections[0].value = hardware.load.get( &consumer ).unwrap().to_string();
 			}
 		}
 	}

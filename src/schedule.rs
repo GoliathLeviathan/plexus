@@ -7,20 +7,14 @@
 // Crates
 
 
+use std::collections::HashMap;
+
 use chrono::Duration;
 use chrono::naive::{NaiveTime, NaiveDateTime};
+use bevy::prelude::*;
 use bevy::prelude::Component;
 
 use crate::computer::Consumer;
-
-
-
-
-//=============================================================================
-// Events
-
-
-// pub struct TimeStepEvent;
 
 
 
@@ -47,12 +41,21 @@ impl Clock {
 }
 
 
+/// The hardware capabilities.
+#[derive( Debug, Component )]
+pub struct Hardware {
+	/// The capability of the CPU. The higher the number, the better is the CPU.
+	pub cpu: u32,
+	pub load: HashMap<Consumer, u32>,
+	pub is_on: bool,
+}
+
+
 /// The usage schedule of the computer.
 #[derive( Debug, Component )]
 pub struct ComputerSchedule {
 	pub start: Vec<NaiveTime>,
 	pub duration: Duration,
-	pub load_player: u32,
 }
 
 impl ComputerSchedule {
@@ -69,7 +72,6 @@ impl ComputerSchedule {
 				NaiveTime::from_hms( 15, 23, 20 ),
 			],
 			duration: Duration::minutes( 5 ),
-			load_player: 0,
 		}
 	}
 
@@ -121,8 +123,31 @@ impl ComputerSchedule {
 					return Ok( 0 );
 				}
 			},
-			Consumer::Player => return Ok( self.load_player ),
 			_ => return Err( "Consumer not legal" ),
 		}
 	}
+}
+
+
+
+
+//=============================================================================
+// Systems
+
+
+pub fn spawn_hardware(
+	mut commands: Commands,
+) {
+	commands
+		.spawn()
+		.insert( Hardware {
+			cpu: 1000,
+			load: HashMap::from( [
+				( Consumer::System, 0 ),
+				( Consumer::User, 0 ),
+				( Consumer::Player, 0 ),
+				( Consumer::Enemy, 0 ),
+			] ),
+			is_on: true,
+		} );
 }

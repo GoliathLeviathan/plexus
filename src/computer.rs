@@ -13,7 +13,7 @@ use rand::Rng;
 use bevy::prelude::*;
 
 use crate::materials::CustomColor;
-use crate::schedule::{Clock, ComputerSchedule};
+use crate::schedule::{Clock, Hardware, ComputerSchedule};
 
 
 
@@ -40,7 +40,7 @@ const USAGE_BAR_SIZE: [f32; 2] = [ CPU_SIZE[0] - MARGIN, CPU_SIZE[1] - MARGIN ];
 // Enums
 
 
-#[derive( Debug, PartialEq, Component )]
+#[derive( Debug, PartialEq, Eq, Hash, Clone, Component )]
 pub enum Consumer {
 	System,
 	User,
@@ -185,34 +185,39 @@ pub fn spawn_cpu(
 
 /// Update the computer usage.
 pub fn update_usage(
-	mut query: Query<&mut Usage>,
+	query: Query<&Usage>,
 	clock_query: Query<&Clock>,
-	schedule_query: Query<&ComputerSchedule>
+	schedule_query: Query<&ComputerSchedule>,
+	mut hw_query: Query<&mut Hardware>,
 ) {
 	let clock = clock_query.single();
 	let schedule = schedule_query.single();
-	for mut usage in query.iter_mut() {
+	let mut hardware = hw_query.single_mut();
+	for usage in query.iter() {
 		let load_target = match schedule.load( &usage.consumer, clock.datetime.time() ) {
 			Ok( x ) => x,
-			Err( _ ) => 0,
+			Err( _ ) => continue,
 		};
 
+		let mut load;
 		if load_target == 0 {
-			usage.load = 0;
+			load = 0;
 		} else {
-			let diff = i64::from( load_target ) - i64::from( usage.load );
+			load = *hardware.load.get( &usage.consumer ).unwrap();
+			let diff = i64::from( load_target ) - i64::from( load );
 			let jump_quick = rand::thread_rng().gen_range( 1..32 );
 			let jump_slow = rand::thread_rng().gen_range( 1..8 );
 			if diff < -8 {
-				usage.load -= cmp::min( jump_quick, usage.load );
+				load -= cmp::min( jump_quick, load );
 			} else if diff < 0 {
-				usage.load -= cmp::min( jump_slow, usage.load );
+				load -= cmp::min( jump_quick, load );
 			} else if diff > 8 {
-				usage.load += jump_quick;
+				load += jump_quick;
 			} else {
-				usage.load += jump_slow;
+				load += jump_slow;
 			}
 		}
+		hardware.load.insert( usage.consumer.clone(), load );
 	}
 }
 
@@ -221,11 +226,14 @@ pub fn update_usage(
 pub fn draw_usage(
 	mut query: Query<( &mut Transform, &Usage ), With<InstrumentCpu>>,
 	cpu_query: Query<&Cpu>,
+	hw_query: Query<&Hardware>,
 ) {
 	let cpu = cpu_query.single();
+	let hardware = hw_query.single();
 	let mut transform_prev: Option<Mut<Transform>> = None;
 	for ( mut transform, usage ) in query.iter_mut() {
-		let scale_target = usage.load as f32 / cpu.capacity as f32;
+// 		let scale_target = usage.load as f32 / cpu.capacity as f32;
+		let scale_target = *hardware.load.get( &usage.consumer ).unwrap() as f32 / cpu.capacity as f32;
 		transform.scale.y = scale_target;
 
 		match transform_prev {
