@@ -11,7 +11,7 @@ use bevy::prelude::*;
 
 use crate::materials::CustomColor;
 use crate::schedule::{Clock, Hardware, ComputerSchedule};
-use crate::computer::{Usage, Consumer};
+use crate::computer::Consumer;
 
 
 
@@ -447,9 +447,9 @@ pub fn change_load_by_button(
 		}
 		match *interaction {
 			Interaction::Clicked => {
-				let mut load = *hardware.load.get( &Consumer::Player ).unwrap() as i32;
+				let mut load = hardware.get_load( &Consumer::Player ) as i32;
 				load += i32::max( button.value, 0 );
-				hardware.load.insert( Consumer::Player.clone(), load as u32 );
+				hardware.set_load( &Consumer::Player, load as u32 );
 			},
 			_ => (),
 		}
@@ -459,15 +459,10 @@ pub fn change_load_by_button(
 
 pub fn display_load(
 	mut query: Query<( &mut Text, &Consumer ), With<LoadText>>,
-	usage_query: Query<&Usage>,
 	hw_query: Query<&Hardware>,
 ) {
 	let hardware = hw_query.single();
-	for usage in usage_query.iter() {
-		for ( mut text, consumer ) in query.iter_mut() {
-			if &usage.consumer == consumer {
-				text.sections[0].value = hardware.load.get( &consumer ).unwrap().to_string();
-			}
-		}
+	for ( mut text, consumer ) in query.iter_mut() {
+		text.sections[0].value = hardware.get_load( &consumer ).to_string();
 	}
 }

@@ -68,22 +68,6 @@ pub struct Cpu {
 pub struct InstrumentCpu;
 
 
-/// This component represents a usage information.
-#[derive( Debug, Component )]
-pub struct Usage {
-	/// The type of the consumer having this usage.
-	pub consumer: Consumer,
-
-	/// The load between 0 (no load at all) and 1 (full load).
-	pub load: u32,
-}
-
-
-/// This is used by the player as a consumer.
-#[derive( Component )]
-pub struct ConsumerPlayer;
-
-
 /// This component represents a status bar.
 #[derive( Component )]
 pub struct StatusBar;
@@ -126,10 +110,7 @@ pub fn spawn_cpu(
 				} )
 				.insert( InstrumentCpu )
 				.insert( StatusBar )
-				.insert( Usage{
-					consumer: Consumer::System,
-					load: 0,
-				} );
+				.insert( Consumer::System );
 			parent
 				.spawn_bundle( SpriteBundle {
 					transform: Transform::from_xyz( 0.0, -USAGE_BAR_SIZE[1] / 2.0, 1.0 ),
@@ -142,10 +123,7 @@ pub fn spawn_cpu(
 				} )
 				.insert( InstrumentCpu )
 				.insert( StatusBar )
-				.insert( Usage{
-					consumer: Consumer::User,
-					load: 0,
-				} );
+				.insert( Consumer::User );
 			parent
 				.spawn_bundle( SpriteBundle {
 					transform: Transform::from_xyz( 0.0, -USAGE_BAR_SIZE[1] / 2.0, 1.0 ),
@@ -158,10 +136,7 @@ pub fn spawn_cpu(
 				} )
 				.insert( InstrumentCpu )
 				.insert( StatusBar )
-				.insert( Usage{
-					consumer: Consumer::Enemy,
-					load: 0,
-				} );
+				.insert( Consumer::Enemy );
 			parent
 				.spawn_bundle( SpriteBundle {
 					transform: Transform::from_xyz( 0.0, -USAGE_BAR_SIZE[1] / 2.0, 1.0 ),
@@ -174,18 +149,14 @@ pub fn spawn_cpu(
 				} )
 				.insert( InstrumentCpu )
 				.insert( StatusBar )
-				.insert( Usage{
-					consumer: Consumer::Player,
-					load: 0,
-				} )
-				.insert( ConsumerPlayer );
+				.insert( Consumer::Player );
 		} );
 }
 
 
 /// Update the computer usage.
 pub fn update_usage(
-	query: Query<&Usage>,
+	query: Query<&Consumer>,
 	clock_query: Query<&Clock>,
 	schedule_query: Query<&ComputerSchedule>,
 	mut hw_query: Query<&mut Hardware>,
@@ -193,8 +164,17 @@ pub fn update_usage(
 	let clock = clock_query.single();
 	let schedule = schedule_query.single();
 	let mut hardware = hw_query.single_mut();
-	for usage in query.iter() {
-		let load_target = match schedule.load( &usage.consumer, clock.datetime.time() ) {
+
+	hardware.is_on = schedule.is_on( clock.datetime.time() );
+	if !hardware.is_on {
+		for consumer in query.iter() {
+			hardware.set_load( &consumer, 0 );
+		}
+		return ();
+	}
+
+	for consumer in query.iter() {
+		let load_target = match schedule.load( &consumer, clock.datetime.time() ) {
 			Ok( x ) => x,
 			Err( _ ) => continue,
 		};
@@ -203,7 +183,7 @@ pub fn update_usage(
 		if load_target == 0 {
 			load = 0;
 		} else {
-			load = *hardware.load.get( &usage.consumer ).unwrap();
+			load = hardware.get_load( &consumer );
 			let diff = i64::from( load_target ) - i64::from( load );
 			let jump_quick = rand::thread_rng().gen_range( 1..32 );
 			let jump_slow = rand::thread_rng().gen_range( 1..8 );
@@ -217,23 +197,22 @@ pub fn update_usage(
 				load += jump_slow;
 			}
 		}
-		hardware.load.insert( usage.consumer.clone(), load );
+		hardware.set_load( &consumer, load );
 	}
 }
 
 
 /// Update the usage display. This moves the current usage value slowly to the target usage value so that the change is smooth and is not jumping around.
 pub fn draw_usage(
-	mut query: Query<( &mut Transform, &Usage ), With<InstrumentCpu>>,
+	mut query: Query<( &mut Transform, &Consumer ), With<InstrumentCpu>>,
 	cpu_query: Query<&Cpu>,
 	hw_query: Query<&Hardware>,
 ) {
 	let cpu = cpu_query.single();
 	let hardware = hw_query.single();
 	let mut transform_prev: Option<Mut<Transform>> = None;
-	for ( mut transform, usage ) in query.iter_mut() {
-// 		let scale_target = usage.load as f32 / cpu.capacity as f32;
-		let scale_target = *hardware.load.get( &usage.consumer ).unwrap() as f32 / cpu.capacity as f32;
+	for ( mut transform, consumer ) in query.iter_mut() {
+		let scale_target = hardware.get_load( &consumer ) as f32 / cpu.capacity as f32;
 		transform.scale.y = scale_target;
 
 		match transform_prev {

@@ -46,8 +46,40 @@ impl Clock {
 pub struct Hardware {
 	/// The capability of the CPU. The higher the number, the better is the CPU.
 	pub cpu: u32,
-	pub load: HashMap<Consumer, u32>,
 	pub is_on: bool,
+	load: HashMap<Consumer, u32>,
+}
+
+impl Hardware {
+	/// Return the total load on the hardware.
+	fn load_total( &self ) -> u32 {
+		let mut total = 0;
+		for ( _, load ) in &self.load {
+			total += load;
+		}
+		return total;
+	}
+
+	/// Return the load the given consumer is putting on the hardware.
+	pub fn get_load( &self, consumer: &Consumer ) -> u32 {
+		return *self.load.get( consumer ).unwrap();
+	}
+
+	/// Set the load the given consumer is putting on the hardware. Since the total load of all consumer can never exceed the capacity, some consumer's load is reduced.
+	pub fn set_load( &mut self, consumer: &Consumer, val: u32 ) {
+		self.load.insert( consumer.clone(), val );
+
+		for cons in [ Consumer::Player, Consumer::User, Consumer::Enemy, ] {
+			let spill = i64::from( self.load_total() ) - i64::from( self.cpu );
+			if spill > 0 {
+				let load = i64::from( self.get_load( &cons ) );
+				let load_new = if spill < load { load - spill } else { 0 };
+				self.load.insert( cons, load_new as u32 );
+			} else {
+				break;
+			}
+		}
+	}
 }
 
 
@@ -65,13 +97,13 @@ impl ComputerSchedule {
 		ComputerSchedule {
 			start: vec![
 				NaiveTime::from_hms( 14, 32, 05 ),
-				NaiveTime::from_hms( 14, 42, 40 ),
+				NaiveTime::from_hms( 14, 42, 00 ),
 				NaiveTime::from_hms( 14, 52, 50 ),
 				NaiveTime::from_hms( 15, 03, 00 ),
 				NaiveTime::from_hms( 15, 13, 10 ),
 				NaiveTime::from_hms( 15, 23, 20 ),
 			],
-			duration: Duration::minutes( 5 ),
+			duration: Duration::minutes( 1 ),
 		}
 	}
 
