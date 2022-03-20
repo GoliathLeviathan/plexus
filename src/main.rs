@@ -16,8 +16,8 @@ mod materials;
 
 // mod consumers;
 
-mod schedule;
-use schedule::{Clock, MachineSchedule};
+mod machine;
+use machine::{Clock, MachineSchedule};
 
 mod ui;
 use ui::ClockWidget;
@@ -51,7 +51,7 @@ impl Plugin for ComputerPlugin {
 	fn build( &self, app: &mut App ) {
 		app
 			.add_startup_system( setup.system() )
-			.add_startup_system( schedule::spawn_machine )
+			.add_startup_system( machine::spawn_machine )
 			.add_startup_system( ui::spawn_ui.system() )
 			.add_startup_system( computer::spawn_cpu.system() )
 			.add_system( bevy::input::system::exit_on_esc_system.system() )

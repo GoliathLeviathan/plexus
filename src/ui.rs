@@ -10,7 +10,7 @@
 use bevy::prelude::*;
 
 use crate::materials::CustomColor;
-use crate::schedule::{Clock, MachineState, Machine};
+use crate::machine::{Clock, MachineState, Machine};
 use crate::computer::Consumer;
 
 

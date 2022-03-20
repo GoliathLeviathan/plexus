@@ -13,7 +13,7 @@ use rand::Rng;
 use bevy::prelude::*;
 
 use crate::materials::CustomColor;
-use crate::schedule::{Load, Clock, MachineState, Machine, MachineSchedule};
+use crate::machine::{Load, Clock, MachineState, Machine, MachineSchedule};
 
 
 
