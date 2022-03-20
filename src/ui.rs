@@ -10,7 +10,7 @@
 use bevy::prelude::*;
 
 use crate::materials::CustomColor;
-use crate::schedule::{Clock, Hardware, ComputerSchedule};
+use crate::schedule::{Clock, MachineState, Hardware};
 use crate::computer::Consumer;
 
 
@@ -57,6 +57,10 @@ pub struct LoadButton {
 
 
 #[derive( Component )]
+pub struct StateText;
+
+
+#[derive( Component )]
 pub struct LoadText;
 
 
@@ -64,6 +68,68 @@ pub struct LoadText;
 
 //=============================================================================
 // Displays
+
+
+fn disp_state(
+	builder: &mut ChildBuilder<'_, '_, '_>,
+	asset_server: &Res<AssetServer>,
+) {
+	builder
+		.spawn_bundle( NodeBundle {
+			style: Style {
+				size: Size::new( Val::Auto, Val::Auto ),
+				flex_direction: FlexDirection::Row,
+				justify_content: JustifyContent::SpaceBetween,
+				..Default::default()
+			},
+			color: Color::NONE.into(),
+			..Default::default()
+		} )
+		.with_children( |parent| {
+			parent
+				.spawn_bundle( TextBundle {
+					style: Style {
+						size: Size::new( Val::Undefined, Val::Px( 20.0 ) ),
+						..Default::default()
+					},
+					text: Text::with_section(
+						"State:",
+						TextStyle {
+							font: asset_server.load( "fonts/Orbitron/Orbitron-Regular.ttf" ),
+							font_size: 20.0,
+							color: Color::WHITE,
+						},
+						TextAlignment {
+							horizontal: HorizontalAlign::Left,
+							..Default::default()
+						},
+					),
+					..Default::default()
+				} );
+
+			parent
+				.spawn_bundle( TextBundle {
+					style: Style {
+						size: Size::new( Val::Undefined, Val::Px( 20.0 ) ),
+						..Default::default()
+					},
+					text: Text::with_section(
+						"",
+						TextStyle {
+							font: asset_server.load( "fonts/Orbitron/Orbitron-Regular.ttf" ),
+							font_size: 20.0,
+							color: Color::WHITE,
+						},
+						TextAlignment {
+							horizontal: HorizontalAlign::Right,
+							..Default::default()
+						},
+					),
+					..Default::default()
+				} )
+				.insert( StateText );
+		} );
+}
 
 
 fn disp_load(
@@ -296,6 +362,7 @@ pub fn spawn_ui(
 							..Default::default()
 						} )
 						.with_children( |parent| {
+							disp_state( parent, &asset_server );
 							disp_load( parent, &asset_server, "System", Consumer::System );
 							disp_load( parent, &asset_server, "User", Consumer::User );
 							disp_load( parent, &asset_server, "Player", Consumer::Player );
@@ -367,22 +434,23 @@ pub fn spawn_ui(
 /// Disable widgets that control the Computer, when the computer is off.
 /// TODO: This is checking the clock every frame and changes the material every frame. There must be a better way.
 pub fn ui_disable(
-	clock_query: Query<&Clock>,
-	schedule_query: Query<&ComputerSchedule>,
+	hw_query: Query<&Hardware>,
 	mut query: Query<
 		( &mut Widget, &mut UiColor ),
 		( With<Button>, With<ComputerInteraction> )
 	>,
 ) {
-	let clock = clock_query.single();
-	let schedule = schedule_query.single();
+	let hardware = hw_query.single();
 	for ( mut widget, mut color ) in query.iter_mut() {
-		if schedule.is_on( clock.datetime.time() ) {
-			widget.disabled = false;
-			*color = CustomColor::NORMAL.into();
-		} else {
-			widget.disabled = true;
-			*color = CustomColor::DISABLED.into();
+		match hardware.state {
+			MachineState::Off => {
+				widget.disabled = true;
+				*color = CustomColor::DISABLED.into();
+			},
+			_ => {
+				widget.disabled = false;
+				*color = CustomColor::NORMAL.into();
+			}
 		}
 	}
 }
@@ -464,5 +532,16 @@ pub fn display_load(
 	let hardware = hw_query.single();
 	for ( mut text, consumer ) in query.iter_mut() {
 		text.sections[0].value = hardware.get_load( &consumer ).to_string();
+	}
+}
+
+
+pub fn display_state(
+	mut query: Query<&mut Text, With<StateText>>,
+	hw_query: Query<&Hardware>,
+) {
+	let hardware = hw_query.single();
+	for mut text in query.iter_mut() {
+		text.sections[0].value = hardware.state.to_string();
 	}
 }

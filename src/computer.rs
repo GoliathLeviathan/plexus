@@ -13,7 +13,7 @@ use rand::Rng;
 use bevy::prelude::*;
 
 use crate::materials::CustomColor;
-use crate::schedule::{Clock, Hardware, ComputerSchedule};
+use crate::schedule::{Clock, MachineState, Hardware, ComputerSchedule};
 
 
 
@@ -165,12 +165,15 @@ pub fn update_usage(
 	let schedule = schedule_query.single();
 	let mut hardware = hw_query.single_mut();
 
-	hardware.is_on = schedule.is_on( clock.datetime.time() );
-	if !hardware.is_on {
-		for consumer in query.iter() {
-			hardware.set_load( &consumer, 0 );
-		}
-		return ();
+	hardware.state = schedule.state( clock.datetime.time() );
+	match hardware.state {
+		MachineState::Off => {
+			for consumer in query.iter() {
+				hardware.set_load( &consumer, 0 );
+			}
+			return ();
+		},
+		_ => (),
 	}
 
 	for consumer in query.iter() {

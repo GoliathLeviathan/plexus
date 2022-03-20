@@ -8,6 +8,7 @@
 
 
 use std::collections::HashMap;
+use std::fmt;
 
 use chrono::Duration;
 use chrono::naive::{NaiveTime, NaiveDateTime};
@@ -41,12 +42,37 @@ impl Clock {
 }
 
 
+/// The usage schedule of the computer.
+#[derive( Debug, Component )]
+pub enum MachineState {
+	Off,
+	Booting,
+	Ready,
+	ShuttingDown,
+// 	Panic,
+// 	Destroyed,
+}
+
+impl fmt::Display for MachineState {
+	fn fmt( &self, f: &mut fmt::Formatter ) -> fmt::Result {
+		match *self {
+			MachineState::Off => write!( f, "Off" ),
+			MachineState::Booting => write!( f, "Booting" ),
+			MachineState::Ready => write!( f, "Ready" ),
+			MachineState::ShuttingDown => write!( f, "Shutting down" ),
+// 			MachineState::Panic => write!( f, "Unrecoverable" ),
+// 			MachineState::Destroyed => write!( f, ")/#(?§»…/($!~" ),
+		}
+	}
+}
+
+
 /// The hardware capabilities.
 #[derive( Debug, Component )]
 pub struct Hardware {
 	/// The capability of the CPU. The higher the number, the better is the CPU.
 	pub cpu: u32,
-	pub is_on: bool,
+	pub state: MachineState,
 	load: HashMap<Consumer, u32>,
 }
 
@@ -79,6 +105,20 @@ impl Hardware {
 				break;
 			}
 		}
+
+		// If the system still has more load than capacity, it crashes.
+		let spill = i64::from( self.load_total() ) - i64::from( self.cpu );
+		if spill > 0 {
+			self.crash();
+		}
+	}
+
+	/// Crash the hardware.
+	fn crash( &mut self ) {
+		for ( _, load ) in self.load.iter_mut() {
+			*load = 0;
+		}
+		self.state = MachineState::Booting;
 	}
 }
 
@@ -118,41 +158,41 @@ impl ComputerSchedule {
 		return None;
 	}
 
-	/// If the computer is on at the time provided, this returns `true` otherwise `false`.
-	pub fn is_on( &self, time: NaiveTime ) -> bool {
-		return self.start_stop( time ).is_some();
+	/// Provide the scheduled state of the computer.
+	pub fn state( &self, time: NaiveTime ) -> MachineState {
+		let ( start, stop ) = match self.start_stop( time ) {
+			Some( x ) => x,
+			None => return MachineState::Off,
+		};
+
+		if time < start + Duration::seconds( 10 ) {
+			return MachineState::Booting;
+		} else if time > stop - Duration::seconds( 10 ) {
+			return MachineState::ShuttingDown;
+		} else {
+			return MachineState::Ready;
+		}
 	}
 
 	/// Returns the current discrete load of the computer at the specified time.
 	pub fn load( &self, consumer: &Consumer, time: NaiveTime ) -> Result<u32, &str> {
-		let ( start, stop ) = match self.start_stop( time ) {
-			Some( x ) => x,
-			None => return Ok( 0 )
+		if self.start_stop( time ).is_none() {
+			return Ok( 0 );
 		};
 
 		match consumer {
 			Consumer::System => {
-				// The system needs some time to boot up. During this time the system load is high and gets lower at the end.
-				if time < start + Duration::seconds( 10 ) {
-					// First part of the booting process.
-					return Ok( 900 );
-				} else if time < start + Duration::seconds( 10 ) {
-					// Second part of the booting process.
-					return Ok( 750 );
-				} else if time > stop - Duration::seconds( 10 ) {
-					// Shutting down.
-					return Ok( 750 );
-				} else {
-					// Normal work.
-					return Ok( 100 );
+				match self.state( time ) {
+					MachineState::Booting => return Ok( 900 ),
+					MachineState::ShuttingDown => Ok( 750 ),
+					MachineState::Ready => return Ok( 100 ),
+					_ => return Ok( 0 ),
 				}
 			},
 			Consumer::User => {
-				// Only after the boot time is done, the user is taking its load. Near the end of the usage time, the user has almost no load.
-				if time >= start + Duration::seconds( 20 ) && time <= stop - Duration::seconds( 30 ) {
-					return Ok( 500 );
-				} else {
-					return Ok( 0 );
+				match self.state( time ) {
+					MachineState::Ready => return Ok( 500 ),
+					_ => return Ok( 0 ),
 				}
 			},
 			_ => return Err( "Consumer not legal" ),
@@ -180,6 +220,6 @@ pub fn spawn_hardware(
 				( Consumer::Player, 0 ),
 				( Consumer::Enemy, 0 ),
 			] ),
-			is_on: true,
+			state: MachineState::Off,
 		} );
 }

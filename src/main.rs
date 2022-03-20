@@ -55,7 +55,8 @@ impl Plugin for ComputerPlugin {
 			.add_system( ui::ui_interact.system() )
 			.add_system( ui::change_time_speed_by_button.system() )
 			.add_system( ui::change_load_by_button.system() )
-			.add_system( ui::display_load.system() )
+			.add_system( ui::display_state )
+			.add_system( ui::display_load )
 			.add_system_set(
 				SystemSet::new()
 					.with_run_criteria( FixedTimestep::step( 0.1 ) )
