@@ -1,4 +1,4 @@
-//! This module contains all resources, components and systes regarding the user interface (UI).
+//! This module contains all resources, components and systems regarding the user interface (UI).
 
 
 
@@ -20,8 +20,20 @@ use crate::computer::Consumer;
 // Constants
 
 
+/// The main font to be used in the UI.
+const FONT_MAIN: &str = "fonts/Orbitron/Orbitron-Regular.ttf";
+
+
+/// The size of the main font to be used in the UI.
+const FONT_MAIN_SIZE: f32 = 20.0;
+
+
 /// The margin magnitude around ui elements.
 const MARGIN: Val = Val::Px( 5.0 );
+
+
+/// The text height.
+const TEXT_HEIGHT: Val = Val::Px( FONT_MAIN_SIZE );
 
 
 
@@ -89,14 +101,14 @@ fn disp_state(
 			parent
 				.spawn_bundle( TextBundle {
 					style: Style {
-						size: Size::new( Val::Undefined, Val::Px( 20.0 ) ),
+						size: Size::new( Val::Undefined, TEXT_HEIGHT ),
 						..Default::default()
 					},
 					text: Text::with_section(
 						"State:",
 						TextStyle {
-							font: asset_server.load( "fonts/Orbitron/Orbitron-Regular.ttf" ),
-							font_size: 20.0,
+							font: asset_server.load( FONT_MAIN ),
+							font_size: FONT_MAIN_SIZE,
 							color: Color::WHITE,
 						},
 						TextAlignment {
@@ -110,14 +122,14 @@ fn disp_state(
 			parent
 				.spawn_bundle( TextBundle {
 					style: Style {
-						size: Size::new( Val::Undefined, Val::Px( 20.0 ) ),
+						size: Size::new( Val::Undefined, TEXT_HEIGHT ),
 						..Default::default()
 					},
 					text: Text::with_section(
 						"",
 						TextStyle {
-							font: asset_server.load( "fonts/Orbitron/Orbitron-Regular.ttf" ),
-							font_size: 20.0,
+							font: asset_server.load( FONT_MAIN ),
+							font_size: FONT_MAIN_SIZE,
 							color: Color::WHITE,
 						},
 						TextAlignment {
@@ -153,14 +165,14 @@ fn disp_load(
 			parent
 				.spawn_bundle( TextBundle {
 					style: Style {
-						size: Size::new( Val::Undefined, Val::Px( 20.0 ) ),
+						size: Size::new( Val::Undefined, TEXT_HEIGHT ),
 						..Default::default()
 					},
 					text: Text::with_section(
 						text,
 						TextStyle {
-							font: asset_server.load( "fonts/Orbitron/Orbitron-Regular.ttf" ),
-							font_size: 20.0,
+							font: asset_server.load( FONT_MAIN ),
+							font_size: FONT_MAIN_SIZE,
 							color: Color::WHITE,
 						},
 						TextAlignment {
@@ -174,14 +186,14 @@ fn disp_load(
 			parent
 				.spawn_bundle( TextBundle {
 					style: Style {
-						size: Size::new( Val::Undefined, Val::Px( 20.0 ) ),
+						size: Size::new( Val::Undefined, TEXT_HEIGHT ),
 						..Default::default()
 					},
 					text: Text::with_section(
 						"0.0",
 						TextStyle {
-							font: asset_server.load( "fonts/Orbitron/Orbitron-Regular.ttf" ),
-							font_size: 20.0,
+							font: asset_server.load( FONT_MAIN ),
+							font_size: FONT_MAIN_SIZE,
 							color: Color::WHITE,
 						},
 						TextAlignment {
@@ -242,8 +254,8 @@ fn button_load(
 				text: Text::with_section(
 					load_text,
 					TextStyle {
-						font: asset_server.load( "fonts/Orbitron/Orbitron-Regular.ttf" ),
-						font_size: 20.0,
+						font: asset_server.load( FONT_MAIN ),
+						font_size: FONT_MAIN_SIZE,
 						color: Color::rgb( 0.9, 0.9, 0.9 ),
 					},
 					Default::default(),
@@ -282,8 +294,8 @@ fn button_multiplier(
 				text: Text::with_section(
 					format!( "×{}", multiplier.to_string() ),
 					TextStyle {
-						font: asset_server.load( "fonts/Orbitron/Orbitron-Regular.ttf" ),
-						font_size: 20.0,
+						font: asset_server.load( FONT_MAIN ),
+						font_size: FONT_MAIN_SIZE,
 						color: Color::rgb( 0.9, 0.9, 0.9 ),
 					},
 					Default::default(),
@@ -388,14 +400,14 @@ pub fn spawn_ui(
 					parent
 						.spawn_bundle( TextBundle {
 							style: Style {
-								size: Size::new( Val::Percent( 100.0 ), Val::Px( 20.0 ) ),
+								size: Size::new( Val::Percent( 100.0 ), TEXT_HEIGHT ),
 								..Default::default()
 							},
 							text: Text::with_section(
 								"YYYY-MM-DD hh:mm:ss.µµµ",
 								TextStyle {
-									font: asset_server.load( "fonts/Orbitron/Orbitron-Regular.ttf" ),
-									font_size: 20.0,
+									font: asset_server.load( FONT_MAIN ),
+									font_size: FONT_MAIN_SIZE,
 									color: Color::WHITE,
 								},
 								TextAlignment {
