@@ -17,7 +17,7 @@ mod materials;
 // mod consumers;
 
 mod schedule;
-use schedule::{Clock, ComputerSchedule};
+use schedule::{Clock, MachineSchedule};
 
 mod ui;
 use ui::ClockWidget;
@@ -31,7 +31,12 @@ mod computer;
 // Constants
 
 
+/// The time when the program starts.
 const TIMESTAMP_START: i64 = 2481201120;
+
+
+/// The time step between usage updates.
+const STEP_USAGE: f64 = 0.1;
 
 
 
@@ -45,8 +50,8 @@ pub struct ComputerPlugin;
 impl Plugin for ComputerPlugin {
 	fn build( &self, app: &mut App ) {
 		app
-// 			.add_event::<TimeStepEvent>()
 			.add_startup_system( setup.system() )
+			.add_startup_system( schedule::spawn_machine )
 			.add_startup_system( ui::spawn_ui.system() )
 			.add_startup_system( computer::spawn_cpu.system() )
 			.add_system( bevy::input::system::exit_on_esc_system.system() )
@@ -55,11 +60,13 @@ impl Plugin for ComputerPlugin {
 			.add_system( ui::ui_interact.system() )
 			.add_system( ui::change_time_speed_by_button.system() )
 			.add_system( ui::change_load_by_button.system() )
-			.add_system( ui::display_load.system() )
+			.add_system( ui::display_state )
+			.add_system( ui::display_load )
 			.add_system_set(
 				SystemSet::new()
-					.with_run_criteria( FixedTimestep::step( 0.1 ) )
-					.with_system( computer::update_usage ),
+					.with_run_criteria( FixedTimestep::step( STEP_USAGE ) )
+					.with_system( computer::update_usage )
+					.with_system( computer::update_state ),
 			)
 			.add_system( computer::draw_usage );
 	}
@@ -96,7 +103,7 @@ fn setup(
 
 	// Implement Computer usage schedule.
 	commands.spawn_bundle( (
-		ComputerSchedule::new(),
+		MachineSchedule::new(),
 	) );
 }
 
