@@ -10,7 +10,7 @@
 use bevy::prelude::*;
 
 use crate::materials::CustomColor;
-use crate::schedule::{Clock, MachineState, Hardware};
+use crate::schedule::{Clock, MachineState, Machine};
 use crate::computer::Consumer;
 
 
@@ -434,15 +434,15 @@ pub fn spawn_ui(
 /// Disable widgets that control the Computer, when the computer is off.
 /// TODO: This is checking the clock every frame and changes the material every frame. There must be a better way.
 pub fn ui_disable(
-	hw_query: Query<&Hardware>,
+	machine_query: Query<&Machine>,
 	mut query: Query<
 		( &mut Widget, &mut UiColor ),
 		( With<Button>, With<ComputerInteraction> )
 	>,
 ) {
-	let hardware = hw_query.single();
+	let machine = machine_query.single();
 	for ( mut widget, mut color ) in query.iter_mut() {
-		match hardware.state {
+		match machine.state {
 			MachineState::Off => {
 				widget.disabled = true;
 				*color = CustomColor::DISABLED.into();
@@ -502,22 +502,22 @@ pub fn change_time_speed_by_button(
 
 
 pub fn change_load_by_button(
-	mut hw_query: Query<&mut Hardware>,
+	mut machine_query: Query<&mut Machine>,
 	mut interaction_query: Query<
 		( &LoadButton, &Interaction, &Widget ),
 		( Changed<Interaction>, With<Button> )
 	>,
 ) {
-	let mut hardware = hw_query.single_mut();
+	let mut machine = machine_query.single_mut();
 	for ( button, interaction, widget ) in interaction_query.iter_mut() {
 		if widget.disabled {
 			continue;
 		}
 		match *interaction {
 			Interaction::Clicked => {
-				let mut load = hardware.get_load( &Consumer::Player ) as i32;
+				let mut load = machine.get_load( &Consumer::Player ) as i32;
 				load += i32::max( button.value, 0 );
-				hardware.set_load( &Consumer::Player, load as u32 );
+				machine.set_load( &Consumer::Player, load as u32 );
 			},
 			_ => (),
 		}
@@ -527,21 +527,21 @@ pub fn change_load_by_button(
 
 pub fn display_load(
 	mut query: Query<( &mut Text, &Consumer ), With<LoadText>>,
-	hw_query: Query<&Hardware>,
+	machine_query: Query<&Machine>,
 ) {
-	let hardware = hw_query.single();
+	let machine = machine_query.single();
 	for ( mut text, consumer ) in query.iter_mut() {
-		text.sections[0].value = hardware.get_load( &consumer ).to_string();
+		text.sections[0].value = machine.get_load( &consumer ).to_string();
 	}
 }
 
 
 pub fn display_state(
 	mut query: Query<&mut Text, With<StateText>>,
-	hw_query: Query<&Hardware>,
+	machine_query: Query<&Machine>,
 ) {
-	let hardware = hw_query.single();
+	let machine = machine_query.single();
 	for mut text in query.iter_mut() {
-		text.sections[0].value = hardware.state.to_string();
+		text.sections[0].value = machine.state.to_string();
 	}
 }

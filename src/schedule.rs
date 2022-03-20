@@ -69,14 +69,14 @@ impl fmt::Display for MachineState {
 
 /// The hardware capabilities.
 #[derive( Debug, Component )]
-pub struct Hardware {
+pub struct Machine {
 	/// The capability of the CPU. The higher the number, the better is the CPU.
 	pub cpu: u32,
 	pub state: MachineState,
 	load: HashMap<Consumer, u32>,
 }
 
-impl Hardware {
+impl Machine {
 	/// Return the total load on the hardware.
 	fn load_total( &self ) -> u32 {
 		let mut total = 0;
@@ -207,12 +207,12 @@ impl ComputerSchedule {
 // Systems
 
 
-pub fn spawn_hardware(
+pub fn spawn_machine(
 	mut commands: Commands,
 ) {
 	commands
 		.spawn()
-		.insert( Hardware {
+		.insert( Machine {
 			cpu: 1000,
 			load: HashMap::from( [
 				( Consumer::System, 0 ),

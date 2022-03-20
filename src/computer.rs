@@ -13,7 +13,7 @@ use rand::Rng;
 use bevy::prelude::*;
 
 use crate::materials::CustomColor;
-use crate::schedule::{Clock, MachineState, Hardware, ComputerSchedule};
+use crate::schedule::{Clock, MachineState, Machine, ComputerSchedule};
 
 
 
@@ -159,11 +159,11 @@ pub fn update_usage(
 	query: Query<&Consumer>,
 	clock_query: Query<&Clock>,
 	schedule_query: Query<&ComputerSchedule>,
-	mut hw_query: Query<&mut Hardware>,
+	mut machine_query: Query<&mut Machine>,
 ) {
 	let clock = clock_query.single();
 	let schedule = schedule_query.single();
-	let mut hardware = hw_query.single_mut();
+	let mut hardware = machine_query.single_mut();
 
 	hardware.state = schedule.state( clock.datetime.time() );
 	match hardware.state {
@@ -209,10 +209,10 @@ pub fn update_usage(
 pub fn draw_usage(
 	mut query: Query<( &mut Transform, &Consumer ), With<InstrumentCpu>>,
 	cpu_query: Query<&Cpu>,
-	hw_query: Query<&Hardware>,
+	machine_query: Query<&Machine>,
 ) {
 	let cpu = cpu_query.single();
-	let hardware = hw_query.single();
+	let hardware = machine_query.single();
 	let mut transform_prev: Option<Mut<Transform>> = None;
 	for ( mut transform, consumer ) in query.iter_mut() {
 		let scale_target = hardware.get_load( &consumer ) as f32 / cpu.capacity as f32;
