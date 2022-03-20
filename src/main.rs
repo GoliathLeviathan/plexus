@@ -12,6 +12,9 @@ use chrono::naive::NaiveDateTime;
 use bevy::prelude::*;
 use bevy::core::FixedTimestep;
 
+mod config;
+use config::{TIMESTAMP_START, STEP_USAGE};
+
 mod materials;
 
 // mod consumers;
@@ -23,20 +26,6 @@ mod ui;
 use ui::ClockWidget;
 
 mod computer;
-
-
-
-
-//=============================================================================
-// Constants
-
-
-/// The time when the program starts.
-const TIMESTAMP_START: i64 = 2481201120;
-
-
-/// The time step between usage updates.
-const STEP_USAGE: f64 = 0.1;
 
 
 

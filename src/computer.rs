@@ -12,6 +12,7 @@ use std::cmp;
 use rand::Rng;
 use bevy::prelude::*;
 
+use crate::config::STEP_USAGE;
 use crate::materials::CustomColor;
 use crate::machine::{Load, Clock, MachineState, Machine, MachineSchedule};
 
@@ -184,8 +185,10 @@ pub fn spawn_cpu(
 pub fn update_usage(
 	query: Query<&Consumer>,
 	mut machine_query: Query<&mut Machine>,
+	clock_query: Query<&Clock>,
 ) {
 	let mut machine = machine_query.single_mut();
+	let clock = clock_query.single();
 
 	match machine.state {
 		MachineState::Off => {
@@ -221,7 +224,7 @@ pub fn update_usage(
 			 MachineState::Booting | MachineState::ShuttingDown => {
 				match consumer {
 					Consumer::System => {
-						let work = ( f64::from( load ) * 0.1 ) as u32;
+						let work = ( f64::from( load ) * STEP_USAGE * f64::from( clock.speed ) ) as u32;
 						let done = machine.work_done.get( &consumer ).unwrap() + work;
 						machine.work_done.insert( consumer.clone(), done );
 					},
