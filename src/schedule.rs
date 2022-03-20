@@ -21,6 +21,19 @@ use crate::computer::Consumer;
 
 
 //=============================================================================
+// Enums
+
+
+/// This enum represents the load on a machines resource.
+pub enum Load {
+	Max,
+	Exact( u32 ),
+}
+
+
+
+
+//=============================================================================
 // Components
 
 
@@ -30,7 +43,7 @@ pub struct Clock{
 	/// The in-game date and time.
 	pub datetime: NaiveDateTime,
 
-	/// The speed of the clock. This is a foctor between the real-world time and the in game time. For each second of real-world time, **speed** seconds pass in-game.
+	/// The speed of the clock. This is a factor between the real-world time and the in game time. For each second of real-world time, **speed** seconds pass in-game.
 	pub speed: f32,
 }
 
@@ -43,7 +56,7 @@ impl Clock {
 
 
 /// The usage schedule of the computer.
-#[derive( Debug, Component )]
+#[derive( Debug )]
 pub enum MachineState {
 	Off,
 	Booting,
@@ -51,6 +64,26 @@ pub enum MachineState {
 	ShuttingDown,
 // 	Panic,
 // 	Destroyed,
+}
+
+impl MachineState {
+	/// Returns the work required to complete the state. If the returned value is `None` the state cannot be completed.
+	pub fn work( state: &MachineState ) -> Option<u32> {
+		match *state {
+			MachineState::Booting => return Some( 9000 ),
+			MachineState::ShuttingDown => return Some( 5000 ),
+			_ => return None,
+		}
+	}
+
+	/// Returns the continuous system during different machine states. This is always present and added to the `work()`.
+	pub fn load( state: &MachineState ) -> Load {
+		match *state {
+			MachineState::Booting | MachineState::ShuttingDown => return Load::Max,
+			MachineState::Ready => return Load::Exact( 100 ),
+			_ => return Load::Exact( 0 ),
+		}
+	}
 }
 
 impl fmt::Display for MachineState {
@@ -73,6 +106,7 @@ pub struct Machine {
 	/// The capability of the CPU. The higher the number, the better is the CPU.
 	pub cpu: u32,
 	pub state: MachineState,
+	pub work_done: HashMap<Consumer, u32>,
 	load: HashMap<Consumer, u32>,
 }
 
@@ -125,16 +159,16 @@ impl Machine {
 
 /// The usage schedule of the computer.
 #[derive( Debug, Component )]
-pub struct ComputerSchedule {
+pub struct MachineSchedule {
 	pub start: Vec<NaiveTime>,
 	pub duration: Duration,
 }
 
-impl ComputerSchedule {
+impl MachineSchedule {
 	/// Create a new computer schedule from the template.
 	pub fn new() -> Self {
 		// TODO: Ensure that the computer is on for at least 2 minutes to allow for enough time for booting and shutting down.
-		ComputerSchedule {
+		MachineSchedule {
 			start: vec![
 				NaiveTime::from_hms( 14, 32, 05 ),
 				NaiveTime::from_hms( 14, 42, 00 ),
@@ -147,7 +181,7 @@ impl ComputerSchedule {
 		}
 	}
 
-	/// If the computer is currently on, return the time it was started and will stop. Otherwise return `None`.
+	/// If the computer is currently scheduled to be on, return the time it was scheduled to be started and scheduled to be shut down. Otherwise return `None`. At the stop time, the machine is scheduled to start the shut down process.
 	fn start_stop( &self, time: NaiveTime ) -> Option<( NaiveTime, NaiveTime )> {
 		for start in &self.start {
 			let stop = *start + self.duration;
@@ -158,45 +192,9 @@ impl ComputerSchedule {
 		return None;
 	}
 
-	/// Provide the scheduled state of the computer.
-	pub fn state( &self, time: NaiveTime ) -> MachineState {
-		let ( start, stop ) = match self.start_stop( time ) {
-			Some( x ) => x,
-			None => return MachineState::Off,
-		};
-
-		if time < start + Duration::seconds( 10 ) {
-			return MachineState::Booting;
-		} else if time > stop - Duration::seconds( 10 ) {
-			return MachineState::ShuttingDown;
-		} else {
-			return MachineState::Ready;
-		}
-	}
-
-	/// Returns the current discrete load of the computer at the specified time.
-	pub fn load( &self, consumer: &Consumer, time: NaiveTime ) -> Result<u32, &str> {
-		if self.start_stop( time ).is_none() {
-			return Ok( 0 );
-		};
-
-		match consumer {
-			Consumer::System => {
-				match self.state( time ) {
-					MachineState::Booting => return Ok( 900 ),
-					MachineState::ShuttingDown => Ok( 750 ),
-					MachineState::Ready => return Ok( 100 ),
-					_ => return Ok( 0 ),
-				}
-			},
-			Consumer::User => {
-				match self.state( time ) {
-					MachineState::Ready => return Ok( 500 ),
-					_ => return Ok( 0 ),
-				}
-			},
-			_ => return Err( "Consumer not legal" ),
-		}
+	/// Returns `true` if the machine is scheduled to be on, otherwise returns `false`.
+	pub fn is_on( &self, time: NaiveTime ) -> bool {
+		return self.start_stop( time ).is_some();
 	}
 }
 
@@ -219,6 +217,9 @@ pub fn spawn_machine(
 				( Consumer::User, 0 ),
 				( Consumer::Player, 0 ),
 				( Consumer::Enemy, 0 ),
+			] ),
+			work_done: HashMap::from( [
+				( Consumer::System, 0 ),
 			] ),
 			state: MachineState::Off,
 		} );
