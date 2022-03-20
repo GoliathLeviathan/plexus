@@ -42,14 +42,6 @@ const TEXT_HEIGHT: Val = Val::Px( FONT_MAIN_SIZE );
 // Components
 
 
-/// This struct holds the UI state.
-#[derive( Component )]
-pub struct UiState{
-	/// If this is `true`, the UI is disabled, if it is `false` it is enabled.
-	pub disabled: bool,
-}
-
-
 #[derive( Component )]
 pub struct Widget {
 	disabled: bool,
@@ -320,17 +312,6 @@ fn button_multiplier(
 // Systems
 
 
-pub fn spawn_ui_state(
-	mut commands: Commands,
-) {
-	commands
-		.spawn()
-		.insert( UiState {
-			disabled: true,
-		} );
-}
-
-
 pub fn spawn_ui(
 	mut commands: Commands,
 	asset_server: Res<AssetServer>,
@@ -465,41 +446,26 @@ pub fn spawn_ui(
 /// Disable widgets that control the Computer, when the computer is off.
 /// TODO: This is checking the clock every frame and changes the material every frame. There must be a better way.
 pub fn ui_disable(
-	machine_query: Query<&Machine>,
-	mut state_query: Query<&mut UiState>,
+	machine_query: Query<&Machine, Changed<Machine>>,
 	mut query: Query<
 		( &mut Widget, &mut UiColor ),
 		( With<Button>, With<ComputerInteraction> )
 	>,
 ) {
-	let machine = machine_query.single();
-	let mut state = state_query.single_mut();
-
-	let do_change = match machine.state {
-		MachineState::Off => !state.disabled,
-		_ => state.disabled,
-	};
-
-	if !do_change {
-		return ();
-	}
-
-	for ( mut widget, mut color ) in query.iter_mut() {
-		match machine.state {
-			MachineState::Off => {
-				widget.disabled = true;
-				*color = CustomColor::DISABLED.into();
-			},
-			_ => {
-				widget.disabled = false;
-				*color = CustomColor::NORMAL.into();
+	// This query can be empty, if no change happened. So instead of using `.single()` (which would result in a panic), a for loop is used.
+	for machine in machine_query.iter() {
+		for ( mut widget, mut color ) in query.iter_mut() {
+			match machine.state {
+				MachineState::Off => {
+					widget.disabled = true;
+					*color = CustomColor::DISABLED.into();
+				},
+				_ => {
+					widget.disabled = false;
+					*color = CustomColor::NORMAL.into();
+				}
 			}
 		}
-	}
-
-	match machine.state {
-		MachineState::Off => state.disabled = true,
-		_ => state.disabled = false,
 	}
 }
 

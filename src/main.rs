@@ -41,7 +41,6 @@ impl Plugin for ComputerPlugin {
 		app
 			.add_startup_system( setup.system() )
 			.add_startup_system( machine::spawn_machine )
-			.add_startup_system( ui::spawn_ui_state )
 			.add_startup_system( ui::spawn_ui )
 			.add_startup_system( computer::spawn_cpu.system() )
 			.add_system( bevy::input::system::exit_on_esc_system.system() )
