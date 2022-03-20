@@ -52,6 +52,32 @@ pub enum Consumer {
 
 
 //=============================================================================
+// Helpers
+
+
+/// This function fuzzies a number.
+fn fuzzying( target: u32, current: u32 ) -> u32 {
+	let mut result = i64::from( current );
+	let diff = i64::from( target ) - result;
+	let jump_quick = rand::thread_rng().gen_range( 1..32 );
+	let jump_slow = rand::thread_rng().gen_range( 1..8 );
+	if diff < -8 {
+		result -= cmp::min( jump_quick, result );
+	} else if diff < 0 {
+		result -= cmp::min( jump_quick, result );
+	} else if diff > 8 {
+		result += jump_quick;
+	} else {
+		result += jump_slow;
+	}
+
+	return result as u32;
+}
+
+
+
+
+//=============================================================================
 // Components
 
 
@@ -157,12 +183,8 @@ pub fn spawn_cpu(
 /// Update the computer usage.
 pub fn update_usage(
 	query: Query<&Consumer>,
-	clock_query: Query<&Clock>,
-	schedule_query: Query<&MachineSchedule>,
 	mut machine_query: Query<&mut Machine>,
 ) {
-	let clock = clock_query.single();
-	let schedule = schedule_query.single();
 	let mut machine = machine_query.single_mut();
 
 	match machine.state {
@@ -176,35 +198,30 @@ pub fn update_usage(
 	}
 
 	for consumer in query.iter() {
-		let load_target = MachineState::load( &machine.state );
-
-		let load_goal = match load_target {
-			Load::Exact( 0 ) => 0,
-			Load::Exact( x ) => {
-				let mut load = machine.get_load( &consumer );
-				let diff = i64::from( x ) - i64::from( load );
-				let jump_quick = rand::thread_rng().gen_range( 1..32 );
-				let jump_slow = rand::thread_rng().gen_range( 1..8 );
-				if diff < -8 {
-					load -= cmp::min( jump_quick, load );
-				} else if diff < 0 {
-					load -= cmp::min( jump_quick, load );
-				} else if diff > 8 {
-					load += jump_quick;
-				} else {
-					load += jump_slow;
+		let load_target = match consumer {
+			Consumer::System => MachineState::load( &machine.state ),
+			Consumer::User => {
+				match machine.state {
+					MachineState::Ready => Load::Exact( 500 ),
+					_ => Load::Exact( 0 ),
 				}
-				load
 			},
+			_ => Load::Exact( machine.get_load( &consumer ) ),
+		};
+
+		let load = match load_target {
+			Load::Exact( 0 ) => 0,
+			Load::Exact( x ) => fuzzying( x, machine.get_load( &consumer ) ),
 			Load::Max => machine.cpu - rand::thread_rng().gen_range( 1..32 ),
 		};
-		machine.set_load( &consumer, load_goal );
+		machine.set_load( &consumer, load );
 
+		// Record the amount of work already accomplished by the load.
 		match machine.state {
 			 MachineState::Booting | MachineState::ShuttingDown => {
 				match consumer {
 					Consumer::System => {
-						let work = ( f64::from( load_goal ) * 0.1 ) as u32;
+						let work = ( f64::from( load ) * 0.1 ) as u32;
 						let done = machine.work_done.get( &consumer ).unwrap() + work;
 						machine.work_done.insert( consumer.clone(), done );
 					},
