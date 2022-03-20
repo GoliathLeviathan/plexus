@@ -515,9 +515,9 @@ pub fn change_load_by_button(
 		}
 		match *interaction {
 			Interaction::Clicked => {
-				let mut load = machine.get_load( &Consumer::Player ) as i32;
+				let mut load = machine.get_load_target( &Consumer::Player ) as i32;
 				load += i32::max( button.value, 0 );
-				machine.set_load( &Consumer::Player, load as u32 );
+				machine.set_load_target( &Consumer::Player, load as u32 );
 			},
 			_ => (),
 		}

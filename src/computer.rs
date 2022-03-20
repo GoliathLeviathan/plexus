@@ -206,7 +206,7 @@ pub fn update_usage(
 					_ => Load::Exact( 0 ),
 				}
 			},
-			_ => Load::Exact( machine.get_load( &consumer ) ),
+			_ => Load::Exact( machine.get_load_target( &consumer ) ),
 		};
 
 		let load = match load_target {

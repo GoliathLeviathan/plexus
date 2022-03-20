@@ -25,6 +25,7 @@ use crate::computer::Consumer;
 
 
 /// This enum represents the load on a machines resource.
+#[derive( Debug )]
 pub enum Load {
 	Max,
 	Exact( u32 ),
@@ -108,6 +109,7 @@ pub struct Machine {
 	pub state: MachineState,
 	pub work_done: HashMap<Consumer, u32>,
 	load: HashMap<Consumer, u32>,
+	load_target: HashMap<Consumer, u32>,
 }
 
 impl Machine {
@@ -145,6 +147,17 @@ impl Machine {
 		if spill > 0 {
 			self.crash();
 		}
+	}
+
+	/// Return the load the given consumer wants to put on the machine.
+	pub fn get_load_target( &self, consumer: &Consumer ) -> u32 {
+		return *self.load_target.get( consumer ).unwrap();
+	}
+
+	/// Set the load the given consumer wants to put on the machine. It is not guarantieed that it can do so. To read the load the consumer actually puts on the machine see `get_load()`.
+	pub fn set_load_target( &mut self, consumer: &Consumer, val: u32 ) {
+		self.load_target.insert( consumer.clone(), val );
+		self.set_load( consumer, val );
 	}
 
 	/// Crash the hardware.
@@ -213,6 +226,12 @@ pub fn spawn_machine(
 		.insert( Machine {
 			cpu: 1000,
 			load: HashMap::from( [
+				( Consumer::System, 0 ),
+				( Consumer::User, 0 ),
+				( Consumer::Player, 0 ),
+				( Consumer::Enemy, 0 ),
+			] ),
+			load_target: HashMap::from( [
 				( Consumer::System, 0 ),
 				( Consumer::User, 0 ),
 				( Consumer::Player, 0 ),
