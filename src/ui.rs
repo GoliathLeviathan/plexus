@@ -7,11 +7,14 @@
 // Crates
 
 
+use std::time::Duration;
+
 use bevy::prelude::*;
 use bevy::diagnostic::{Diagnostics, FrameTimeDiagnosticsPlugin};
 
+use crate::config::STEP_USAGE;
 use crate::materials::CustomColor;
-use crate::machine::{Clock, MachineState, Machine};
+use crate::machine::{UpdateTimer, Clock, MachineState, Machine};
 use crate::computer::Consumer;
 
 
@@ -563,6 +566,7 @@ pub fn ui_interact(
 
 
 pub fn change_time_speed_by_button(
+	mut timer: ResMut<UpdateTimer>,
 	mut interaction_query: Query<
 		( &SpeedButton, &Interaction ),
 		( Changed<Interaction>, With<Button> )
@@ -574,6 +578,7 @@ pub fn change_time_speed_by_button(
 		match *interaction {
 			Interaction::Clicked => {
 				clock.speed = button.multiplier;
+				timer.timer.set_duration( Duration::from_secs_f32( STEP_USAGE / button.multiplier ) );
 			},
 			_ => (),
 		}

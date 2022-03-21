@@ -14,7 +14,7 @@ use bevy::prelude::*;
 
 use crate::config::STEP_USAGE;
 use crate::materials::CustomColor;
-use crate::machine::{Load, Clock, MachineState, Machine, MachineSchedule};
+use crate::machine::{Load, UpdateTimer, Clock, MachineState, Machine, MachineSchedule};
 
 
 
@@ -60,8 +60,8 @@ pub enum Consumer {
 fn fuzzying( target: u32, current: u32 ) -> u32 {
 	let mut result = i64::from( current );
 	let diff = i64::from( target ) - result;
-	let jump_quick = rand::thread_rng().gen_range( 1..32 );
-	let jump_slow = rand::thread_rng().gen_range( 1..8 );
+	let jump_quick = rand::thread_rng().gen_range( 0..32 );
+	let jump_slow = rand::thread_rng().gen_range( 0..8 );
 	if diff < -8 {
 		result -= cmp::min( jump_quick, result );
 	} else if diff < 0 {
@@ -183,10 +183,17 @@ pub fn spawn_cpu(
 
 /// Update the computer usage.
 pub fn update_usage(
+	time: Res<Time>,
+	mut timer: ResMut<UpdateTimer>,
 	query: Query<&Consumer>,
 	mut machine_query: Query<&mut Machine>,
 	clock_query: Query<&Clock>,
 ) {
+	// Update timer with time elapsed since last update.
+	if !timer.timer.tick( time.delta() ).just_finished() {
+		return ();
+	}
+
 	let mut machine = machine_query.single_mut();
 	let clock = clock_query.single();
 
@@ -215,7 +222,7 @@ pub fn update_usage(
 		let load = match load_target {
 			Load::Exact( 0 ) => 0,
 			Load::Exact( x ) => fuzzying( x, machine.get_load( &consumer ) ),
-			Load::Max => machine.cpu - rand::thread_rng().gen_range( 1..32 ),
+			Load::Max => machine.cpu - rand::thread_rng().gen_range( 0..32 ),
 		};
 		machine.set_load( &consumer, load );
 
@@ -224,7 +231,7 @@ pub fn update_usage(
 			 MachineState::Booting | MachineState::ShuttingDown => {
 				match consumer {
 					Consumer::System => {
-						let work = ( f64::from( load ) * STEP_USAGE * f64::from( clock.speed ) ) as u32;
+						let work = ( f64::from( load ) * f64::from( STEP_USAGE ) * f64::from( clock.speed ) ) as u32;
 						let done = machine.work_done.get( &consumer ).unwrap() + work;
 						machine.work_done.insert( consumer.clone(), done );
 					},

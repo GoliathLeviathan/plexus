@@ -35,6 +35,18 @@ pub enum Load {
 
 
 //=============================================================================
+// Resources
+
+
+/// A timer to record the time since the last update.
+pub struct UpdateTimer {
+	pub timer: Timer,
+}
+
+
+
+
+//=============================================================================
 // Components
 
 

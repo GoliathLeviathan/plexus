@@ -10,7 +10,6 @@
 use chrono::Duration;
 use chrono::naive::NaiveDateTime;
 use bevy::prelude::*;
-use bevy::core::FixedTimestep;
 use bevy::diagnostic::{FrameTimeDiagnosticsPlugin};
 
 mod config;
@@ -21,7 +20,7 @@ mod materials;
 // mod consumers;
 
 mod machine;
-use machine::{Clock, MachineSchedule};
+use machine::{UpdateTimer, Clock, MachineSchedule};
 
 mod ui;
 use ui::ClockWidget;
@@ -40,6 +39,7 @@ pub struct ComputerPlugin;
 impl Plugin for ComputerPlugin {
 	fn build( &self, app: &mut App ) {
 		app
+			.insert_resource( UpdateTimer { timer: Timer::from_seconds( STEP_USAGE, true ) } )
 			.add_startup_system( setup.system() )
 			.add_startup_system( machine::spawn_machine )
 			.add_startup_system( ui::spawn_ui )
@@ -53,12 +53,8 @@ impl Plugin for ComputerPlugin {
 			.add_system( ui::change_load_by_button.system() )
 			.add_system( ui::display_state )
 			.add_system( ui::display_load )
-			.add_system_set(
-				SystemSet::new()
-					.with_run_criteria( FixedTimestep::step( STEP_USAGE ) )
-					.with_system( computer::update_usage )
-					.with_system( computer::update_state ),
-			)
+			.add_system( computer::update_usage )
+			.add_system( computer::update_state )
 			.add_system( computer::draw_usage );
 	}
 }

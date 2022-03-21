@@ -12,4 +12,4 @@ pub const TIMESTAMP_START: i64 = 2481201120;
 
 
 /// The time step between usage updates.
-pub const STEP_USAGE: f64 = 0.1;
+pub const STEP_USAGE: f32 = 0.1;
