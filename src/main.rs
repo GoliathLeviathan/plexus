@@ -11,6 +11,7 @@ use chrono::Duration;
 use chrono::naive::NaiveDateTime;
 use bevy::prelude::*;
 use bevy::core::FixedTimestep;
+use bevy::diagnostic::{FrameTimeDiagnosticsPlugin};
 
 mod config;
 use config::{TIMESTAMP_START, STEP_USAGE};
@@ -45,6 +46,7 @@ impl Plugin for ComputerPlugin {
 			.add_startup_system( computer::spawn_cpu.system() )
 			.add_system( bevy::input::system::exit_on_esc_system.system() )
 			.add_system( update_clock.system() )
+			.add_system( ui::diagnostics_update )
 			.add_system( ui::ui_disable.system() )
 			.add_system( ui::ui_interact.system() )
 			.add_system( ui::change_time_speed_by_button.system() )
@@ -123,6 +125,7 @@ fn update_clock(
 fn main() {
 	App::new()
 		.add_plugins( DefaultPlugins )
+		.add_plugin( FrameTimeDiagnosticsPlugin::default() )
 		.add_plugin( ComputerPlugin )
 		.run();
 }

@@ -8,6 +8,7 @@
 
 
 use bevy::prelude::*;
+use bevy::diagnostic::{Diagnostics, FrameTimeDiagnosticsPlugin};
 
 use crate::materials::CustomColor;
 use crate::machine::{Clock, MachineState, Machine};
@@ -24,8 +25,16 @@ use crate::computer::Consumer;
 const FONT_MAIN: &str = "fonts/Orbitron/Orbitron-Regular.ttf";
 
 
+/// The mono font to be used in the UI.
+const FONT_MONO: &str = "fonts/DejaVu/DejaVuLGCSansMono.ttf";
+
+
 /// The size of the main font to be used in the UI.
 const FONT_MAIN_SIZE: f32 = 20.0;
+
+
+/// The size of the debug text to be used in the UI.
+const FONT_DEBUG_SIZE: f32 = 12.0;
 
 
 /// The margin magnitude around ui elements.
@@ -74,6 +83,10 @@ pub struct StateText;
 
 #[derive( Component )]
 pub struct LoadText;
+
+
+#[derive( Component )]
+pub struct DiagnosticsText;
 
 
 
@@ -438,8 +451,61 @@ pub fn spawn_ui(
 							button_multiplier( parent, &asset_server, 128.0 );
 							button_multiplier( parent, &asset_server, 1024.0 );
 						} );
+
+					// Diagnostics
+					parent
+						.spawn_bundle( TextBundle {
+							style: Style {
+								align_self: AlignSelf::FlexEnd,
+								..Default::default()
+							},
+							text: Text {
+								sections: vec![
+									TextSection {
+										value: "FPS: ".to_string(),
+										style: TextStyle {
+											font: asset_server.load( FONT_MONO ),
+											font_size: FONT_DEBUG_SIZE,
+											color: Color::MAROON,
+										},
+									},
+									TextSection {
+										value: "".to_string(),
+										style: TextStyle {
+											font: asset_server.load( FONT_MONO ),
+											font_size: FONT_DEBUG_SIZE,
+											color: Color::MAROON,
+										},
+									},
+								],
+								..Default::default()
+							},
+							..Default::default()
+						} )
+						.insert( DiagnosticsText );
 				} );
 		} );
+}
+
+
+pub fn diagnostics_update(
+	diagnostics: Res<Diagnostics>,
+	mut query: Query<&mut Text, With<DiagnosticsText>>
+) {
+	for mut text in query.iter_mut() {
+		let mut diags = [ "".to_string(), "".to_string() ];
+		if let Some( fps ) = diagnostics.get( FrameTimeDiagnosticsPlugin::FPS ) {
+			if let Some( average ) = fps.average() {
+				diags[0] = format!( "{:.2}", average );
+			}
+		}
+		if let Some( frame_time ) = diagnostics.get( FrameTimeDiagnosticsPlugin::FRAME_TIME ) {
+			if let Some( average ) = frame_time.average() {
+				diags[1] = format!( "{:.4}", average );
+			}
+		}
+		text.sections[1].value = format!( "{} ({})", diags[0], diags[1] );
+	}
 }
 
 
