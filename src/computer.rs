@@ -56,23 +56,32 @@ pub enum Consumer {
 // Helpers
 
 
-/// This function fuzzies a number.
-fn fuzzying( target: u32, current: u32 ) -> u32 {
-	let mut result = i64::from( current );
-	let diff = i64::from( target ) - result;
-	let jump_quick = rand::thread_rng().gen_range( 0..32 );
-	let jump_slow = rand::thread_rng().gen_range( 0..8 );
-	if diff < -8 {
-		result -= cmp::min( jump_quick, result );
-	} else if diff < 0 {
-		result -= cmp::min( jump_quick, result );
-	} else if diff > 8 {
-		result += jump_quick;
-	} else {
-		result += jump_slow;
-	}
+/// This function fuzzies a number while advancing from `current` to `target`, adding a random to the `target`. This random number can be positive (if `target` is bigger than `current` or negative if `target` is smaller than `current`. If `target` is very close to `current` the `step` size is small.
+///
+/// The return value can never be below `u32::MIN` or above `max`. If `max` is `None` it defaults to `u32::MAX`.
+fn fuzzying( target: u32, current: u32, step_max: u32, maximum: Option<u32> ) -> u32 {
+	let max = match maximum {
+		Some( x ) => x,
+		None => u32::MAX,
+	};
 
-	return result as u32;
+	let diff = i64::from( target ) - i64::from( current );
+	let jump_quick = rand::thread_rng().gen_range( 0..step_max );
+	let jump_slow = rand::thread_rng().gen_range( 0..step_max / 4 );
+
+	if diff < 0 {
+		let jump = if diff < -8 { jump_quick } else { jump_slow };
+		// Can never be below 0.
+		return current.saturating_sub( jump );
+	} else if diff > 0 {
+		let jump = if diff > 8 { jump_quick } else { jump_slow };
+		// Can never be above the maximum.
+		let result = current.saturating_add( jump );
+		return cmp::min( result, max );
+	} else {
+		let result = i64::from( current ) + i64::from( jump_slow ) - i64::from( step_max ) / 8;
+		return cmp::min( result as u32, max );
+	}
 }
 
 
@@ -220,8 +229,8 @@ pub fn update_usage(
 
 		let load = match load_target {
 			Load::Exact( 0 ) => 0,
-			Load::Exact( x ) => fuzzying( x, machine.get_load( &consumer ) ),
-			Load::Max => machine.cpu - rand::thread_rng().gen_range( 0..32 ),
+			Load::Exact( x ) => fuzzying( x, machine.get_load( &consumer ), 32u32, Some( machine.cpu ) ),
+			Load::Max => fuzzying( machine.cpu, machine.get_load( &consumer ), 32u32, Some( machine.cpu ) ),
 		};
 		machine.set_load( &consumer, load );
 
