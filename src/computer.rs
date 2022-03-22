@@ -185,9 +185,9 @@ pub fn spawn_cpu(
 pub fn update_usage(
 	time: Res<Time>,
 	mut timer: ResMut<UpdateTimer>,
+	clock: Res<Clock>,
 	query: Query<&Consumer>,
 	mut machine_query: Query<&mut Machine>,
-	clock_query: Query<&Clock>,
 ) {
 	// Update timer with time elapsed since last update.
 	if !timer.timer.tick( time.delta() ).just_finished() {
@@ -195,7 +195,6 @@ pub fn update_usage(
 	}
 
 	let mut machine = machine_query.single_mut();
-	let clock = clock_query.single();
 
 	match machine.state {
 		MachineState::Off => {
@@ -246,12 +245,11 @@ pub fn update_usage(
 
 /// Switch between operational states.
 pub fn update_state(
+	clock: Res<Clock>,
 	mut machine_query: Query<&mut Machine>,
-	clock_query: Query<&Clock>,
 	schedule_query: Query<&MachineSchedule>,
 ) {
 	let mut machine = machine_query.single_mut();
-	let clock = clock_query.single();
 	let schedule = schedule_query.single();
 
 	match machine.state {

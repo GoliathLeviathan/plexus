@@ -44,14 +44,7 @@ pub struct UpdateTimer {
 }
 
 
-
-
-//=============================================================================
-// Components
-
-
 /// The clock holding the actual in-game time.
-#[derive( Component )]
 pub struct Clock{
 	/// The in-game date and time.
 	pub datetime: NaiveDateTime,
@@ -66,6 +59,12 @@ impl Clock {
 		self.datetime += dur;
 	}
 }
+
+
+
+
+//=============================================================================
+// Components
 
 
 /// The usage schedule of the computer.

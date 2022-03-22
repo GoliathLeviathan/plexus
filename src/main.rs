@@ -40,6 +40,10 @@ impl Plugin for ComputerPlugin {
 	fn build( &self, app: &mut App ) {
 		app
 			.insert_resource( UpdateTimer { timer: Timer::from_seconds( STEP_USAGE, true ) } )
+			.insert_resource( Clock {
+				datetime: NaiveDateTime::from_timestamp( TIMESTAMP_START, 0 ),
+				speed: 1.0,
+			} )
 			.add_startup_system( setup.system() )
 			.add_startup_system( machine::spawn_machine )
 			.add_startup_system( ui::spawn_ui )
@@ -80,14 +84,6 @@ fn setup(
 		..Default::default()
 	} );
 
-	// Implement clock that tracks and controls the in-game time flow.
-	commands.spawn_bundle( (
-		Clock {
-			datetime: NaiveDateTime::from_timestamp( TIMESTAMP_START, 0 ),
-			speed: 1.0,
-		},
-	) );
-
 	// Implement Computer usage schedule.
 	commands.spawn_bundle( (
 		MachineSchedule::new(),
@@ -97,10 +93,9 @@ fn setup(
 
 fn update_clock(
 	time: Res<Time>,
+	mut clock: ResMut<Clock>,
 	mut query: Query<&mut Text, With<ClockWidget>>,
-	mut clock_query: Query<&mut Clock>,
 ) {
-	let mut clock = clock_query.single_mut();
 	let mut text = query.single_mut();
 
 	// Advance in-game time by the real time since the last frame but with the in-game multiplier.

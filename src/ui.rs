@@ -566,14 +566,13 @@ pub fn ui_interact(
 
 
 pub fn change_time_speed_by_button(
+	mut clock: ResMut<Clock>,
 	mut timer: ResMut<UpdateTimer>,
 	mut interaction_query: Query<
 		( &SpeedButton, &Interaction ),
 		( Changed<Interaction>, With<Button> )
 	>,
-	mut clock_query: Query<&mut Clock>,
 ) {
-	let mut clock = clock_query.single_mut();
 	for ( button, interaction ) in interaction_query.iter_mut() {
 		match *interaction {
 			Interaction::Clicked => {
